@@ -22,7 +22,7 @@ function Clock({ mes, onMesChange }) {
   const s  = String(now.getSeconds()).padStart(2,'0')
   return (
     <div className="flex-shrink-0 flex flex-col items-end justify-center gap-0.5">
-      <span className="font-bebas leading-none tracking-[1px] text-white" style={{ fontSize: 52 }}>
+      <span className="font-bebas leading-none tracking-[1px] text-white" style={{ fontSize: 64 }}>
         {h}:{mi}:<span className="text-red">{s}</span>
       </span>
       <span className="font-cond text-[10px] font-bold tracking-[2px] uppercase text-muted leading-none">
@@ -51,7 +51,7 @@ export default function Navbar({ meta, totalVendas, mes, onMesChange }) {
       transition={{ duration: 0.45, ease: 'easeOut' }}
       className="flex-shrink-0 flex items-center gap-4 px-5 relative z-10"
       style={{
-        height: 80,
+        height: 88,
         background: 'linear-gradient(180deg,#121212 0%,#0d0d0d 100%)',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}
@@ -70,26 +70,29 @@ export default function Navbar({ meta, totalVendas, mes, onMesChange }) {
 
       <Divider />
 
-      {/* Meta — compacto */}
-      <div className="flex-shrink-0 flex flex-col justify-center" style={{ minWidth: 180 }}>
-        <span className="text-[9px] font-bold tracking-[2.5px] uppercase text-muted mb-0.5">Meta Mensal</span>
-        <span className="font-bebas text-red leading-none" style={{ fontSize: 28 }}>{fmt(meta)}</span>
-      </div>
-
-      {/* Barra de progresso — larga */}
-      <div className="flex-1 flex items-center gap-4 min-w-0">
-        <span className="flex-shrink-0 text-[9px] font-bold tracking-[2.5px] uppercase text-muted">Progresso Geral</span>
-        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background:'rgba(255,255,255,0.07)' }}>
-          <motion.div
-            className="h-full rounded-full"
-            style={{ background:'linear-gradient(90deg,#9B0009,#E8000D,#FF4444)', boxShadow:'0 0 10px rgba(232,0,13,0.5)' }}
-            initial={{ width: 0 }}
-            animate={{ width: `${pct}%` }}
-            transition={{ duration: 1.4, ease: 'easeOut' }}
-          />
+      {/* Meta + Progresso — card único largo */}
+      <div className="flex-shrink-0 flex flex-col justify-center gap-2 px-5 py-2 rounded-xl border border-white/[0.08]"
+        style={{ width: 460, background:'rgba(232,0,13,0.06)' }}>
+        {/* Linha 1: label + valor */}
+        <div className="flex items-baseline justify-between">
+          <span className="text-[9px] font-bold tracking-[2.5px] uppercase text-muted">Meta Mensal</span>
+          <span className="font-bebas text-red leading-none" style={{ fontSize: 28 }}>{fmt(meta)}</span>
         </div>
-        <span className="flex-shrink-0 font-bebas text-red leading-none" style={{ fontSize: 22 }}>{pct}%</span>
-        <span className="flex-shrink-0 text-[10px] text-muted">({fmt(totalVendas)})</span>
+        {/* Linha 2: label progresso + barra + % + realizado */}
+        <div className="flex items-center gap-3">
+          <span className="flex-shrink-0 text-[8px] font-bold tracking-[2px] uppercase text-muted">Progresso</span>
+          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background:'rgba(255,255,255,0.07)' }}>
+            <motion.div
+              className="h-full rounded-full"
+              style={{ background:'linear-gradient(90deg,#9B0009,#E8000D,#FF4444)', boxShadow:'0 0 10px rgba(232,0,13,0.5)' }}
+              initial={{ width: 0 }}
+              animate={{ width: `${pct}%` }}
+              transition={{ duration: 1.4, ease: 'easeOut' }}
+            />
+          </div>
+          <span className="flex-shrink-0 font-bebas text-red leading-none" style={{ fontSize: 20 }}>{pct}%</span>
+          <span className="flex-shrink-0 text-[9px] text-muted">{fmt(totalVendas)}</span>
+        </div>
       </div>
 
       <Divider />
