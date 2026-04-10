@@ -22,10 +22,10 @@ function Clock({ mes, onMesChange }) {
   const s  = String(now.getSeconds()).padStart(2,'0')
   return (
     <div className="flex-shrink-0 flex flex-col items-end justify-center gap-0.5">
-      <span className="font-bebas leading-none tracking-[1px] text-white" style={{ fontSize: 64 }}>
+      <span className="font-bebas leading-none tracking-[1px] text-white" style={{ fontSize: 80 }}>
         {h}:{mi}:<span className="text-red">{s}</span>
       </span>
-      <span className="font-cond text-[10px] font-bold tracking-[2px] uppercase text-muted leading-none">
+      <span className="font-cond text-[11px] font-bold tracking-[2px] uppercase text-muted leading-none">
         {dias[now.getDay()]}, {now.getDate()} {meses[now.getMonth()]} {now.getFullYear()}
       </span>
       <input
@@ -51,7 +51,7 @@ export default function Navbar({ meta, totalVendas, mes, onMesChange }) {
       transition={{ duration: 0.45, ease: 'easeOut' }}
       className="flex-shrink-0 flex items-center gap-4 px-5 relative z-10"
       style={{
-        height: 88,
+        height: 108,
         background: 'linear-gradient(180deg,#121212 0%,#0d0d0d 100%)',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}
