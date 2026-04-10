@@ -21,18 +21,22 @@ function Clock({ mes, onMesChange }) {
   const mi = String(now.getMinutes()).padStart(2,'0')
   const s  = String(now.getSeconds()).padStart(2,'0')
   return (
-    <div className="flex-shrink-0 flex flex-col items-end justify-center gap-0.5" style={{ paddingTop: 14 }}>
+    <div className="flex-shrink-0 flex flex-col items-end justify-between" style={{ alignSelf: 'stretch', paddingTop: 8, paddingBottom: 8 }}>
+      {/* Hora — topo */}
       <span className="font-bebas leading-none tracking-[1px] text-white" style={{ fontSize: 80 }}>
         {h}:{mi}:<span className="text-red">{s}</span>
       </span>
-      <span className="font-cond text-[11px] font-bold tracking-[2px] uppercase text-muted leading-none">
-        {dias[now.getDay()]}, {now.getDate()} {meses[now.getMonth()]} {now.getFullYear()}
-      </span>
-      <input
-        type="month" value={mes} onChange={e => onMesChange(e.target.value)}
-        className="bg-transparent border-none outline-none cursor-pointer p-0 text-right"
-        style={{ color:'rgba(255,255,255,0.2)', fontSize: 10, fontFamily:'inherit', letterSpacing:'1px', width: 100 }}
-      />
+      {/* Data + mês — baixo */}
+      <div className="flex flex-col items-end gap-0.5">
+        <span className="font-cond text-[11px] font-bold tracking-[2px] uppercase text-muted leading-none">
+          {dias[now.getDay()]}, {now.getDate()} {meses[now.getMonth()]} {now.getFullYear()}
+        </span>
+        <input
+          type="month" value={mes} onChange={e => onMesChange(e.target.value)}
+          className="bg-transparent border-none outline-none cursor-pointer p-0 text-right"
+          style={{ color:'rgba(255,255,255,0.2)', fontSize: 10, fontFamily:'inherit', letterSpacing:'1px', width: 100 }}
+        />
+      </div>
     </div>
   )
 }
@@ -49,7 +53,7 @@ export default function Navbar({ meta, totalVendas, mes, onMesChange }) {
       initial={{ y: -16, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.45, ease: 'easeOut' }}
-      className="flex-shrink-0 flex items-center gap-4 px-5 relative z-10"
+      className="flex-shrink-0 flex items-stretch gap-4 px-5 relative z-10"
       style={{
         height: 108,
         background: 'linear-gradient(180deg,#121212 0%,#0d0d0d 100%)',
@@ -66,7 +70,7 @@ export default function Navbar({ meta, totalVendas, mes, onMesChange }) {
       />
 
       {/* Logo */}
-      <div className="flex-shrink-0">{LOGO}</div>
+      <div className="flex-shrink-0 flex items-center">{LOGO}</div>
 
       <Divider />
 
@@ -98,7 +102,7 @@ export default function Navbar({ meta, totalVendas, mes, onMesChange }) {
       <Divider />
 
       {/* Mercado Financeiro */}
-      <div className="flex-shrink-0" style={{ maxWidth: 520 }}>
+      <div className="flex-shrink-0 flex items-center" style={{ maxWidth: 520 }}>
         <MercadoWidget />
       </div>
 
