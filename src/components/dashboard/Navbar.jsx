@@ -9,7 +9,7 @@ const LOGO = (
   </svg>
 )
 
-function Clock({ mes, onMesChange }) {
+function Clock() {
   const [now, setNow] = useState(new Date())
   useEffect(() => {
     const iv = setInterval(() => setNow(new Date()), 1000)
@@ -26,17 +26,10 @@ function Clock({ mes, onMesChange }) {
       <span className="font-bebas leading-none tracking-[1px] text-white" style={{ fontSize: 80 }}>
         {h}:{mi}:<span className="text-red">{s}</span>
       </span>
-      {/* Data + mês — baixo */}
-      <div className="flex flex-col items-end gap-0.5">
-        <span className="font-cond text-[11px] font-bold tracking-[2px] uppercase text-muted leading-none">
-          {dias[now.getDay()]}, {now.getDate()} {meses[now.getMonth()]} {now.getFullYear()}
-        </span>
-        <input
-          type="month" value={mes} onChange={e => onMesChange(e.target.value)}
-          className="bg-transparent border-none outline-none cursor-pointer p-0 text-right"
-          style={{ color:'rgba(255,255,255,0.2)', fontSize: 10, fontFamily:'inherit', letterSpacing:'1px', width: 100 }}
-        />
-      </div>
+      {/* Data — baixo */}
+      <span className="font-cond text-[11px] font-bold tracking-[2px] uppercase text-muted leading-none">
+        {dias[now.getDay()]}, {now.getDate()} {meses[now.getMonth()]} {now.getFullYear()}
+      </span>
     </div>
   )
 }
@@ -69,8 +62,19 @@ export default function Navbar({ meta, totalVendas, mes, onMesChange }) {
         transition={{ duration: 0.8, ease: 'easeOut' }}
       />
 
-      {/* Logo */}
-      <div className="flex-shrink-0 flex items-center">{LOGO}</div>
+      {/* Logo — link para /admin */}
+      <a href="/admin" className="flex-shrink-0 flex items-center opacity-90 hover:opacity-100 transition-opacity">
+        {LOGO}
+      </a>
+
+      {/* Seletor de mês — ao lado da logo */}
+      <div className="flex-shrink-0 flex items-center">
+        <input
+          type="month" value={mes} onChange={e => onMesChange(e.target.value)}
+          className="bg-transparent border-none outline-none cursor-pointer p-0"
+          style={{ color:'rgba(255,255,255,0.35)', fontSize: 11, fontFamily:'inherit', letterSpacing:'1px', width: 110 }}
+        />
+      </div>
 
       <Divider />
 
@@ -108,18 +112,10 @@ export default function Navbar({ meta, totalVendas, mes, onMesChange }) {
 
       <Divider />
 
-      {/* Relógio + data + seletor mês */}
-      <Clock mes={mes} onMesChange={onMesChange} />
-
-      {/* Link Admin */}
-      <a href="/admin"
-        className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-xl border border-white/[0.06] transition-all hover:border-red/40 hover:bg-red/10 ml-1"
-        style={{ background:'rgba(255,255,255,0.03)' }}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2"/>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-        </svg>
-      </a>
+      {/* Relógio — canto direito */}
+      <div className="ml-auto">
+        <Clock />
+      </div>
     </motion.nav>
   )
 }
