@@ -95,6 +95,14 @@ export default function Dashboard() {
             )}
           </button>
         ))}
+        {/* Seletor de mês — canto direito, abaixo do relógio */}
+        <div className="ml-auto flex items-center pb-2">
+          <input
+            type="month" value={mes} onChange={e => trocarMes(e.target.value)}
+            className="bg-transparent border-none outline-none cursor-pointer p-0"
+            style={{ color:'rgba(255,255,255,0.35)', fontSize: 11, fontFamily:'inherit', letterSpacing:'1px', width: 110 }}
+          />
+        </div>
       </div>
 
       {/* Loader */}

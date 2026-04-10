@@ -38,7 +38,7 @@ function Divider() {
   return <div className="flex-shrink-0 w-px self-stretch my-3" style={{ background:'rgba(255,255,255,0.08)' }} />
 }
 
-export default function Navbar({ meta, totalVendas, mes, onMesChange }) {
+export default function Navbar({ meta, totalVendas }) {
   const pct = meta > 0 ? Math.min(100, Math.round((totalVendas / meta) * 100)) : 0
 
   return (
@@ -66,15 +66,6 @@ export default function Navbar({ meta, totalVendas, mes, onMesChange }) {
       <a href="/admin" className="flex-shrink-0 flex items-center opacity-90 hover:opacity-100 transition-opacity">
         {LOGO}
       </a>
-
-      {/* Seletor de mês — ao lado da logo */}
-      <div className="flex-shrink-0 flex items-center">
-        <input
-          type="month" value={mes} onChange={e => onMesChange(e.target.value)}
-          className="bg-transparent border-none outline-none cursor-pointer p-0"
-          style={{ color:'rgba(255,255,255,0.35)', fontSize: 11, fontFamily:'inherit', letterSpacing:'1px', width: 110 }}
-        />
-      </div>
 
       <Divider />
 
