@@ -21,7 +21,7 @@ function Clock({ mes, onMesChange }) {
   const mi = String(now.getMinutes()).padStart(2,'0')
   const s  = String(now.getSeconds()).padStart(2,'0')
   return (
-    <div className="flex-shrink-0 flex flex-col items-end justify-center gap-0.5">
+    <div className="flex-shrink-0 flex flex-col items-end justify-center gap-0.5" style={{ paddingTop: 14 }}>
       <span className="font-bebas leading-none tracking-[1px] text-white" style={{ fontSize: 80 }}>
         {h}:{mi}:<span className="text-red">{s}</span>
       </span>
