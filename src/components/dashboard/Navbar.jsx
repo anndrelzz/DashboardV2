@@ -9,7 +9,7 @@ const LOGO = (
   </svg>
 )
 
-function Clock() {
+function ClockCard({ mes, onMesChange }) {
   const [now, setNow] = useState(new Date())
   useEffect(() => {
     const iv = setInterval(() => setNow(new Date()), 1000)
@@ -20,15 +20,29 @@ function Clock() {
   const h  = String(now.getHours()).padStart(2,'0')
   const mi = String(now.getMinutes()).padStart(2,'0')
   const s  = String(now.getSeconds()).padStart(2,'0')
+
   return (
-    <div className="flex-shrink-0 flex flex-col items-center gap-0.5 px-5 py-2 rounded-2xl border border-white/[0.06]"
+    <div className="flex-shrink-0 flex flex-col items-center justify-center gap-0.5 px-5 py-2 rounded-2xl border border-white/[0.06]"
       style={{ background:'rgba(255,255,255,0.03)' }}>
-      <span className="font-bebas leading-none tracking-[2px] text-white" style={{ fontSize: 48 }}>
+      {/* Hora */}
+      <span className="font-bebas leading-none tracking-[2px] text-white" style={{ fontSize: 42 }}>
         {h}:{mi}:<span className="text-red">{s}</span>
       </span>
-      <span className="font-cond text-[10px] font-bold tracking-[2px] uppercase text-muted">
+      {/* Data */}
+      <span className="font-cond text-[10px] font-bold tracking-[2px] uppercase text-muted leading-none">
         {dias[now.getDay()]}, {now.getDate()} {meses[now.getMonth()]} {now.getFullYear()}
       </span>
+      {/* Seletor de mês */}
+      <div className="flex items-center gap-1 mt-1">
+        <span className="text-[8px] font-bold tracking-[1.5px] uppercase text-dim">Mês</span>
+        <input
+          type="month"
+          value={mes}
+          onChange={e => onMesChange(e.target.value)}
+          className="bg-transparent border-none text-white/60 font-cond text-[11px] tracking-wide outline-none cursor-pointer p-0"
+          style={{ width: 110 }}
+        />
+      </div>
     </div>
   )
 }
@@ -43,7 +57,7 @@ export default function Navbar({ meta, totalVendas, mes, onMesChange }) {
       transition={{ duration: 0.45, ease: 'easeOut' }}
       className="flex-shrink-0 flex items-center gap-3 px-4 relative z-10"
       style={{
-        height: 88,
+        height: 96,
         background: 'linear-gradient(180deg,#121212 0%,#0d0d0d 100%)',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}
@@ -62,10 +76,10 @@ export default function Navbar({ meta, totalVendas, mes, onMesChange }) {
 
       {/* Meta + Progresso */}
       <div className="flex-shrink-0 px-5 py-3 rounded-xl border border-white/[0.08]"
-        style={{ background:'rgba(232,0,13,0.07)', minWidth: 280 }}>
+        style={{ background:'rgba(232,0,13,0.07)', minWidth: 340 }}>
         <div className="flex justify-between items-center mb-2">
           <span className="text-[10px] font-bold tracking-[2.5px] uppercase text-muted">Meta Mensal</span>
-          <span className="font-bebas text-red leading-none" style={{ fontSize: 26 }}>{fmt(meta)}</span>
+          <span className="font-bebas text-red leading-none" style={{ fontSize: 28 }}>{fmt(meta)}</span>
         </div>
         <div className="h-2 rounded-full overflow-hidden" style={{ background:'rgba(255,255,255,0.07)' }}>
           <motion.div className="h-full rounded-full"
@@ -81,29 +95,13 @@ export default function Navbar({ meta, totalVendas, mes, onMesChange }) {
         </div>
       </div>
 
-      {/* Mercado Financeiro */}
+      {/* Mercado Financeiro (inclui SELIC + CDI) */}
       <div className="flex-1 min-w-0">
         <MercadoWidget />
       </div>
 
-      {/* Seletor de mês */}
-      <div className="flex-shrink-0 px-3 py-2 rounded-xl border border-white/[0.06]"
-        style={{ background:'rgba(255,255,255,0.03)' }}>
-        <div className="text-[9px] font-bold tracking-[2px] uppercase text-muted mb-0.5">Mês</div>
-        <input type="month" value={mes} onChange={e => onMesChange(e.target.value)}
-          className="bg-transparent border-none text-white font-bebas text-[16px] tracking-wide outline-none cursor-pointer p-0 w-[130px]" />
-      </div>
-
-      {/* CDI */}
-      <div className="flex-shrink-0 px-3 py-2 rounded-xl border border-white/[0.06] flex flex-col gap-0.5 items-center"
-        style={{ background:'rgba(255,255,255,0.03)' }}>
-        <span className="text-[9px] font-bold tracking-[2px] uppercase text-muted">CDI</span>
-        <span className="font-bebas text-white leading-none" style={{ fontSize: 24 }}>14,65%</span>
-        <span className="text-[8px] text-dim tracking-wide">a.a.</span>
-      </div>
-
-      {/* Relógio */}
-      <Clock />
+      {/* Relógio + Data + Seletor de mês */}
+      <ClockCard mes={mes} onMesChange={onMesChange} />
 
       {/* Link Admin */}
       <a href="/admin"
