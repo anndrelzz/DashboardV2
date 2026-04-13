@@ -52,7 +52,7 @@ export default function Dashboard() {
       .on('postgres_changes', { event:'*',      schema:'public', table:'vendedores' }, async () => carregarDados())
       .on('postgres_changes', { event:'*',      schema:'public', table:'equipes' },    async () => carregarDados())
       .subscribe()
-    const poll = setInterval(() => carregarDados(), 20_000)
+    const poll = setInterval(() => carregarDados(), 120_000)
     return () => { sb.removeChannel(ch); clearInterval(poll) }
   }, [authed])
 
