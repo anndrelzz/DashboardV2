@@ -12,9 +12,9 @@ const useStore = create((set, get) => ({
 
   setMes: (mes) => set({ mes }),
 
-  carregarDados: async (mesParam) => {
+  carregarDados: async (mesParam, { showLoading = false } = {}) => {
     const mes = mesParam || get().mes
-    set({ loading: true })
+    if (showLoading) set({ loading: true })
     try {
       const [r1, r2, r3, r4] = await Promise.all([
         sb.from('equipes').select('*').order('nome'),
@@ -30,7 +30,7 @@ const useStore = create((set, get) => ({
         mes,
       })
     } finally {
-      set({ loading: false })
+      if (showLoading) set({ loading: false })
     }
   },
 }))

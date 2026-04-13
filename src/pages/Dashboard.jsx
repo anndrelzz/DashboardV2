@@ -28,7 +28,7 @@ export default function Dashboard() {
       if (session) {
         sessionStorage.setItem('vendamax_dash_auth', '1')
         setAuthed(true)
-        await carregarDados()
+        await carregarDados(undefined, { showLoading: true })
       }
       setChecking(false)
     })()
