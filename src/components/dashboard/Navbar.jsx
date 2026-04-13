@@ -103,6 +103,14 @@ export default function Navbar({ meta, totalVendas }) {
 
       <Divider />
 
+      {/* Identificação da unidade */}
+      <div className="flex-shrink-0 flex flex-col items-center justify-center gap-1">
+        <span className="font-bebas leading-none tracking-[4px] text-white" style={{ fontSize: 28 }}>ADEMICON</span>
+        <span className="font-cond text-[10px] font-bold tracking-[2px] uppercase leading-none" style={{ color:'rgba(255,255,255,0.35)' }}>Unidade · Joinville América</span>
+      </div>
+
+      <Divider />
+
       {/* Relógio — canto direito */}
       <div className="ml-auto">
         <Clock />
