@@ -82,6 +82,7 @@ export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
                 <option value="">Selecione...</option>
                 <option value="Imovel">🏠 Imóvel</option>
                 <option value="Veiculo">🚗 Veículo</option>
+                <option value="Serviço">🔧 Serviço</option>
               </select>
             </div>
             <div className="col-span-2 flex flex-col gap-1.5">
@@ -129,8 +130,9 @@ export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
                   style={{ borderColor:'rgba(255,255,255,0.06)' }}>
                   <td className="px-4 py-3 text-[13px] font-semibold">{vend?.nome || 'Removido'}</td>
                   <td className="px-4 py-3 text-[13px]">
-                    {v.tipo==='Imovel' ? <span className="text-red font-bold">🏠 Imóvel</span>
-                     : v.tipo==='Veiculo' ? <span style={{color:'#3B82F6'}} className="font-bold">🚗 Veículo</span>
+                    {v.tipo==='Imovel'  ? <span className="text-red font-bold">🏠 Imóvel</span>
+                     : v.tipo==='Veiculo' ? <span style={{color:'#60A5FA'}} className="font-bold">🚗 Veículo</span>
+                     : (v.tipo==='Serviço'||v.tipo==='Servico') ? <span style={{color:'#FFD60A'}} className="font-bold">🔧 Serviço</span>
                      : '—'}
                   </td>
                   <td className="px-4 py-3">
