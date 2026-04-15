@@ -57,12 +57,18 @@ export default function VendedoresTab({ vendedores, vendas }) {
   const chartObj = useRef(null)
 
   // ── Calcular totais ──
-  const tV = {}, tVI = {}, tVV = {}
+  const tV = {}, tVI = {}, tVV = {}, tVS = {}
   vendas.forEach(v => {
     tV[v.vendedor_id]  = (tV[v.vendedor_id]  || 0) + Number(v.valor)
-    if (v.tipo === 'Veiculo') tVV[v.vendedor_id] = (tVV[v.vendedor_id]||0) + Number(v.valor)
-    else                      tVI[v.vendedor_id] = (tVI[v.vendedor_id]||0) + Number(v.valor)
+    if (v.tipo === 'Veiculo')                              tVV[v.vendedor_id] = (tVV[v.vendedor_id]||0) + Number(v.valor)
+    else if (v.tipo === 'Serviço' || v.tipo === 'Servico') tVS[v.vendedor_id] = (tVS[v.vendedor_id]||0) + Number(v.valor)
+    else                                                   tVI[v.vendedor_id] = (tVI[v.vendedor_id]||0) + Number(v.valor)
   })
+
+  // ── Totais por categoria ──
+  const totalImovel  = Object.values(tVI).reduce((a, b) => a + b, 0)
+  const totalVeiculo = Object.values(tVV).reduce((a, b) => a + b, 0)
+  const totalServico = Object.values(tVS).reduce((a, b) => a + b, 0)
 
   const sorted = Object.entries(tV)
     .map(([id, val]) => ({ id, val, v: vendedores.find(x => x.id === id) }))
@@ -106,6 +112,10 @@ export default function VendedoresTab({ vendedores, vendas }) {
     const gradVeiculo = ctx2.createLinearGradient(0, 0, wrapW, 0)
     gradVeiculo.addColorStop(0, '#60A5FA')
     gradVeiculo.addColorStop(1, '#1E3A8A')
+
+    const gradServico = ctx2.createLinearGradient(0, 0, wrapW, 0)
+    gradServico.addColorStop(0, '#FFD60A')
+    gradServico.addColorStop(1, '#B45309')
 
     // Plugin: valor total à direita de cada barra
     const labelPlugin = {
@@ -156,6 +166,17 @@ export default function VendedoresTab({ vendedores, vendas }) {
             data: sorted.map(x => tVV[x.id] || 0),
             backgroundColor: gradVeiculo,
             hoverBackgroundColor: '#60A5FA',
+            borderRadius: 0,
+            borderSkipped: false,
+            barThickness: 38,
+            stack: 'total',
+            datalabels: { display: false },
+          },
+          {
+            label: 'Serviço',
+            data: sorted.map(x => tVS[x.id] || 0),
+            backgroundColor: gradServico,
+            hoverBackgroundColor: '#FFD60A',
             borderRadius: { topLeft: 0, bottomLeft: 0, topRight: 6, bottomRight: 6 },
             borderSkipped: false,
             barThickness: 38,
@@ -218,7 +239,7 @@ export default function VendedoresTab({ vendedores, vendas }) {
     })
 
     return () => { chartObj.current?.destroy(); chartObj.current = null }
-  }, [JSON.stringify(sorted.map(x => ({ id: x.id, val: x.val })))])
+  }, [JSON.stringify(sorted.map(x => ({ id: x.id, val: x.val, vi: tVI[x.id]||0, vv: tVV[x.id]||0, vs: tVS[x.id]||0 })))])
 
   return (
     <div className="grid gap-4 h-full" style={{ gridTemplateColumns: '290px 1fr' }}>
@@ -257,6 +278,30 @@ export default function VendedoresTab({ vendedores, vendas }) {
             <span className="text-[9px] text-muted tracking-[1.5px] uppercase">Total Geral</span>
             <span className="font-bebas text-xl text-red leading-none">{fmt(totalGeral)}</span>
           </motion.div>
+        </div>
+
+        {/* ── Resumo por categoria ── */}
+        <div className="flex gap-3 flex-shrink-0">
+          {[
+            { label: 'Imóvel',  total: totalImovel,  color: '#E8000D', bg: 'rgba(232,0,13,0.08)',  border: 'rgba(232,0,13,0.25)' },
+            { label: 'Veículo', total: totalVeiculo, color: '#60A5FA', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.25)' },
+            { label: 'Serviço', total: totalServico, color: '#FFD60A', bg: 'rgba(255,214,10,0.08)', border: 'rgba(255,214,10,0.25)' },
+          ].map(({ label, total, color, bg, border }) => {
+            const pct = totalGeral > 0 ? ((total / totalGeral) * 100).toFixed(1) : '0.0'
+            return (
+              <div key={label} className="flex-1 rounded-xl px-4 py-3 flex flex-col gap-1"
+                style={{ background: bg, border: `1px solid ${border}` }}>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
+                  <span className="font-cond font-bold text-[11px] tracking-[2px] uppercase"
+                    style={{ color: 'rgba(255,255,255,0.5)' }}>{label}</span>
+                </div>
+                <span className="font-bebas text-[18px] leading-none" style={{ color }}>{fmt(total)}</span>
+                <span className="font-cond text-[11px] font-semibold tracking-wide"
+                  style={{ color: 'rgba(255,255,255,0.35)' }}>{pct}% do total</span>
+              </div>
+            )
+          })}
         </div>
 
         <div className="flex-1 min-h-0 rounded-2xl flex flex-col p-4 gap-3"
