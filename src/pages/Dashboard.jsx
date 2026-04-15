@@ -59,6 +59,17 @@ export default function Dashboard() {
   const trocarMes = useCallback(async val => { setMes(val); await carregarDados(val) }, [])
   const totalVendas = vendas.reduce((a, b) => a + Number(b.valor), 0)
 
+  const resumoCategorias = (() => {
+    let imovel = 0, veiculo = 0, servico = 0
+    vendas.forEach(v => {
+      const val = Number(v.valor)
+      if      (v.tipo === 'Veiculo')                              veiculo += val
+      else if (v.tipo === 'Serviço' || v.tipo === 'Servico')      servico += val
+      else                                                        imovel  += val
+    })
+    return { imovel, veiculo, servico }
+  })()
+
   if (checking) {
     return (
       <div className="fixed inset-0 flex items-center justify-center flex-col gap-4" style={{ background:'#080808' }}>
@@ -95,8 +106,29 @@ export default function Dashboard() {
             )}
           </button>
         ))}
-        {/* Seletor de mês — canto direito, abaixo do relógio */}
-        <div className="ml-auto flex items-center pb-2">
+        {/* Resumo por categoria + seletor de mês */}
+        <div className="ml-auto flex items-center gap-5 pb-2">
+          {[
+            { label: 'Imóvel',  val: resumoCategorias.imovel,   color: '#E8000D' },
+            { label: 'Veículo', val: resumoCategorias.veiculo,  color: '#60A5FA' },
+            { label: 'Serviço', val: resumoCategorias.servico,  color: '#FFD60A' },
+          ].map(({ label, val, color }) => {
+            const pct = totalVendas > 0 ? ((val / totalVendas) * 100).toFixed(1) : '0,0'
+            return (
+              <div key={label} className="flex items-center gap-2">
+                <div className="w-[2px] h-5 rounded-full flex-shrink-0" style={{ background: color }} />
+                <div className="flex flex-col leading-none gap-[3px]">
+                  <span className="font-cond font-bold tracking-[1.5px] uppercase"
+                    style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>{label}</span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-bebas" style={{ fontSize: 14, color }}>{val > 0 ? 'R$ ' + Number(val).toLocaleString('pt-BR') : '—'}</span>
+                    <span className="font-cond font-semibold" style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{pct}%</span>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+          <div className="w-px h-4 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }} />
           <input
             type="month" value={mes} onChange={e => trocarMes(e.target.value)}
             className="bg-transparent border-none outline-none cursor-pointer p-0"

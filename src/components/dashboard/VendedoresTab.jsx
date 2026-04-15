@@ -65,11 +65,6 @@ export default function VendedoresTab({ vendedores, vendas }) {
     else                                                   tVI[v.vendedor_id] = (tVI[v.vendedor_id]||0) + Number(v.valor)
   })
 
-  // ── Totais por categoria ──
-  const totalImovel  = Object.values(tVI).reduce((a, b) => a + b, 0)
-  const totalVeiculo = Object.values(tVV).reduce((a, b) => a + b, 0)
-  const totalServico = Object.values(tVS).reduce((a, b) => a + b, 0)
-
   const sorted = Object.entries(tV)
     .map(([id, val]) => ({ id, val, v: vendedores.find(x => x.id === id) }))
     .filter(x => x.v)
@@ -280,31 +275,7 @@ export default function VendedoresTab({ vendedores, vendas }) {
           </motion.div>
         </div>
 
-        {/* ── Resumo por categoria ── */}
-        <div className="flex gap-3 flex-shrink-0">
-          {[
-            { label: 'Imóvel',  total: totalImovel,  color: '#E8000D', bg: 'rgba(232,0,13,0.08)',  border: 'rgba(232,0,13,0.25)' },
-            { label: 'Veículo', total: totalVeiculo, color: '#60A5FA', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.25)' },
-            { label: 'Serviço', total: totalServico, color: '#FFD60A', bg: 'rgba(255,214,10,0.08)', border: 'rgba(255,214,10,0.25)' },
-          ].map(({ label, total, color, bg, border }) => {
-            const pct = totalGeral > 0 ? ((total / totalGeral) * 100).toFixed(1) : '0.0'
-            return (
-              <div key={label} className="flex-1 rounded-xl px-4 py-3 flex flex-col gap-1"
-                style={{ background: bg, border: `1px solid ${border}` }}>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
-                  <span className="font-cond font-bold text-[11px] tracking-[2px] uppercase"
-                    style={{ color: 'rgba(255,255,255,0.5)' }}>{label}</span>
-                </div>
-                <span className="font-bebas text-[18px] leading-none" style={{ color }}>{fmt(total)}</span>
-                <span className="font-cond text-[11px] font-semibold tracking-wide"
-                  style={{ color: 'rgba(255,255,255,0.35)' }}>{pct}% do total</span>
-              </div>
-            )
-          })}
-        </div>
-
-        <div className="flex-1 min-h-0 rounded-2xl flex flex-col p-4 gap-3"
+<div className="flex-1 min-h-0 rounded-2xl flex flex-col p-4 gap-3"
           style={{
             background: 'linear-gradient(160deg,#141414,#0f0f0f)',
             border: '1px solid rgba(255,255,255,0.06)',
