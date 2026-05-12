@@ -46,7 +46,7 @@ export default function Navbar({ meta, totalVendas }) {
       initial={{ y: -16, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.45, ease: 'easeOut' }}
-      className="flex-shrink-0 flex items-stretch gap-4 px-5 relative z-10"
+      className="flex-shrink-0 flex items-stretch gap-4 px-5 relative z-10 overflow-hidden"
       style={{
         height: 108,
         background: 'linear-gradient(180deg,#121212 0%,#0d0d0d 100%)',
@@ -70,8 +70,8 @@ export default function Navbar({ meta, totalVendas }) {
       <Divider />
 
       {/* Meta + Progresso — card único largo */}
-      <div className="flex-shrink-0 flex flex-col justify-center gap-2 px-5 py-2 rounded-xl border border-white/[0.08]"
-        style={{ width: 460, background:'rgba(232,0,13,0.06)' }}>
+      <div className="flex flex-col justify-center gap-2 px-5 py-2 rounded-xl border border-white/[0.08]"
+        style={{ width: 460, minWidth: 300, flexShrink: 1, background:'rgba(232,0,13,0.06)' }}>
         {/* Linha 1: label + valor */}
         <div className="flex items-baseline justify-between">
           <span className="text-[9px] font-bold tracking-[2.5px] uppercase text-muted">Meta Mensal</span>
@@ -97,7 +97,7 @@ export default function Navbar({ meta, totalVendas }) {
       <Divider />
 
       {/* Mercado Financeiro */}
-      <div className="flex-shrink-0 flex items-center" style={{ maxWidth: 520 }}>
+      <div className="flex items-center" style={{ flex: '1 1 0', minWidth: 0, maxWidth: 520 }}>
         <MercadoWidget />
       </div>
 
@@ -112,7 +112,7 @@ export default function Navbar({ meta, totalVendas }) {
       <Divider />
 
       {/* Relógio — canto direito */}
-      <div className="ml-auto">
+      <div className="ml-auto flex-shrink-0">
         <Clock />
       </div>
     </motion.nav>
