@@ -37,9 +37,8 @@ export default function EquipesTab({ equipes, vendedores, vendas, modoFechamento
     if (vend?.equipe_id) tE[vend.equipe_id] = (tE[vend.equipe_id] || 0) + Number(v.valor)
   })
 
-  const sorted = Object.entries(tE)
-    .map(([id, val]) => ({ id, val, e: equipes.find(x => x.id === id) }))
-    .filter(x => x.e)
+  const sorted = equipes
+    .map(e => ({ id: e.id, val: tE[e.id] || 0, e }))
     .sort((a, b) => b.val - a.val)
 
   const totalGeral = sorted.reduce((a, x) => a + x.val, 0)
@@ -98,8 +97,8 @@ export default function EquipesTab({ equipes, vendedores, vendas, modoFechamento
         scales: {
           x: {
             ticks: {
-              color: modoFechamento ? 'rgba(255,200,100,0.8)' : 'rgba(255,255,255,0.6)',
-              font: { size: 12, weight: '700', family: modoFechamento ? "'Anton', sans-serif" : undefined },
+              color: '#ffffff',
+              font: { size: 15, weight: '700' },
             },
             grid:   { display: false },
             border: { display: false },
@@ -217,8 +216,7 @@ export default function EquipesTab({ equipes, vendedores, vendas, modoFechamento
           {sorted.length === 0 ? (
             <div className="flex-1 flex items-center justify-center text-muted text-sm">Sem dados ainda</div>
           ) : (
-            <div className="flex-1 relative min-h-0"
-              style={modoFechamento ? { filter:'drop-shadow(0 0 10px rgba(255,100,0,0.45)) drop-shadow(0 0 22px rgba(255,50,0,0.2))' } : {}}>
+            <div className="flex-1 relative min-h-0">
               <canvas ref={chartRef} />
             </div>
           )}
