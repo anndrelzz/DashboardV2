@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;600;700&family=Barlow+Condensed:wght@400;600;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Anton&family=Barlow:wght@300;400;600;700&family=Barlow+Condensed:wght@400;600;700;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -91,3 +91,62 @@ select option { background: #1a1a1a; color: #fff; }
   to   { width: 100%; }
 }
 .border-anim { animation: border-slide 0.8s ease forwards; }
+
+/* ── Fire effect — Dia do Fechamento ── */
+@keyframes fire-glow {
+  0%, 100% {
+    text-shadow:
+      0 0 6px #fff9,
+      0 0 15px #FF8800,
+      0 0 30px #FF5500,
+      0 0 50px #FF2200,
+      0 0 75px #CC0000;
+    opacity: 1;
+  }
+  25% {
+    text-shadow:
+      0 0 4px #fff6,
+      0 0 12px #FFAA00,
+      0 0 24px #FF8800,
+      0 0 40px #FF5500,
+      0 0 60px #FF2200;
+    opacity: 0.93;
+  }
+  50% {
+    text-shadow:
+      0 0 8px #fffc,
+      0 0 18px #FF6600,
+      0 0 36px #FF3300,
+      0 0 58px #EE0000,
+      0 0 85px #990000;
+    opacity: 0.97;
+  }
+  75% {
+    text-shadow:
+      0 0 5px #fff8,
+      0 0 10px #FF9900,
+      0 0 22px #FF7700,
+      0 0 38px #FF4400,
+      0 0 55px #DD1100;
+    opacity: 0.9;
+  }
+}
+
+@keyframes ember-rise {
+  0%   { transform: translateY(0)     translateX(0)                  scale(1);   opacity: 0.95; }
+  60%  { opacity: 0.5; }
+  100% { transform: translateY(-52px) translateX(var(--ember-dx, 0)) scale(0.1); opacity: 0; }
+}
+
+.fire-text {
+  animation: fire-glow 1.5s ease-in-out infinite;
+  color: #FFF4CC;
+}
+
+.ember {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: ember-rise var(--ember-dur, 1.2s) ease-out infinite;
+  animation-delay: var(--ember-delay, 0s);
+}

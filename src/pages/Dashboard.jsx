@@ -16,11 +16,18 @@ function Spinner() {
 }
 
 export default function Dashboard() {
-  const { meta, vendedores, equipes, vendas, mes, loading, carregarDados, setMes } = useStore()
-  const [authed,    setAuthed]    = useState(false)
-  const [checking,  setChecking]  = useState(true)
-  const [tab,       setTab]       = useState('vendedores')
-  const [celebracao,setCelebracao]= useState(null)
+  const {
+    meta, metaFechamento,
+    vendedores, equipes, vendas,
+    mes, loading,
+    modoFechamento, setModoFechamento,
+    carregarDados, setMes,
+  } = useStore()
+
+  const [authed,     setAuthed]     = useState(false)
+  const [checking,   setChecking]   = useState(true)
+  const [tab,        setTab]        = useState('vendedores')
+  const [celebracao, setCelebracao] = useState(null)
 
   useEffect(() => {
     ;(async () => {
@@ -57,11 +64,19 @@ export default function Dashboard() {
   }, [authed])
 
   const trocarMes = useCallback(async val => { setMes(val); await carregarDados(val) }, [])
-  const totalVendas = vendas.reduce((a, b) => a + Number(b.valor), 0)
+
+  // Filtro de vendas: no modo fechamento mostra só as vendas cuja DATA é hoje
+  const hoje = new Date().toISOString().split('T')[0]
+  const vendasVisiveis = modoFechamento
+    ? vendas.filter(v => v.data === hoje)
+    : vendas
+
+  const metaAtiva    = modoFechamento ? metaFechamento : meta
+  const totalVendas  = vendasVisiveis.reduce((a, b) => a + Number(b.valor), 0)
 
   const resumoCategorias = (() => {
     let imovel = 0, veiculo = 0, servico = 0
-    vendas.forEach(v => {
+    vendasVisiveis.forEach(v => {
       const val = Number(v.valor)
       if      (v.tipo === 'Veiculo')                              veiculo += val
       else if (v.tipo === 'Serviço' || v.tipo === 'Servico')      servico += val
@@ -85,7 +100,14 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background:'#080808' }}>
-      <Navbar meta={meta} totalVendas={totalVendas} mes={mes} onMesChange={trocarMes} />
+      <Navbar
+        meta={meta}
+        totalVendas={totalVendas}
+        mes={mes}
+        onMesChange={trocarMes}
+        modoFechamento={modoFechamento}
+        metaFechamento={metaFechamento}
+      />
 
       {/* Tab bar */}
       <div className="flex-shrink-0 flex items-end px-6 gap-1 relative"
@@ -101,13 +123,42 @@ export default function Dashboard() {
             {t.label}
             {tab === t.id && (
               <motion.div layoutId="tab-indicator"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-red rounded-t-full"
+                className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full"
+                style={{ background: modoFechamento ? '#FF6600' : '#E8000D' }}
                 transition={{ type:'spring', stiffness:400, damping:30 }} />
             )}
           </button>
         ))}
-        {/* Resumo por categoria + seletor de mês */}
-        <div className="ml-auto flex items-center gap-5 pb-2">
+
+        {/* Toggle Dia-Dia / Fechamento + categorias + mês */}
+        <div className="ml-auto flex items-center gap-4 pb-2">
+
+          {/* Toggle */}
+          <div className="flex items-center rounded-lg overflow-hidden border"
+            style={{ borderColor: modoFechamento ? 'rgba(255,140,0,0.35)' : 'rgba(255,255,255,0.1)', background:'#111' }}>
+            {[
+              { id: false, label: 'Dia-Dia' },
+              { id: true,  label: '🔥 Fechamento' },
+            ].map(({ id, label }) => {
+              const isActive = modoFechamento === id
+              return (
+                <button key={String(id)} onClick={() => setModoFechamento(id)}
+                  className="px-4 py-1.5 font-cond font-bold text-xs tracking-[1.5px] uppercase transition-all"
+                  style={{
+                    background: isActive
+                      ? (id ? 'linear-gradient(90deg,#C04400,#FF6600)' : 'rgba(232,0,13,0.8)')
+                      : 'transparent',
+                    color: isActive ? '#fff' : 'rgba(255,255,255,0.35)',
+                  }}>
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="w-px h-4 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }} />
+
+          {/* Resumo categorias */}
           {[
             { label: 'Imóvel',  val: resumoCategorias.imovel,   color: '#E8000D' },
             { label: 'Veículo', val: resumoCategorias.veiculo,  color: '#60A5FA' },
@@ -128,12 +179,29 @@ export default function Dashboard() {
               </div>
             )
           })}
-          <div className="w-px h-4 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }} />
-          <input
-            type="month" value={mes} onChange={e => trocarMes(e.target.value)}
-            className="bg-transparent border-none outline-none cursor-pointer p-0"
-            style={{ color:'rgba(255,255,255,0.35)', fontSize: 11, fontFamily:'inherit', letterSpacing:'1px', width: 110 }}
-          />
+
+          {/* Seletor de mês — esconde no modo fechamento */}
+          {!modoFechamento && (
+            <>
+              <div className="w-px h-4 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }} />
+              <input
+                type="month" value={mes} onChange={e => trocarMes(e.target.value)}
+                className="bg-transparent border-none outline-none cursor-pointer p-0"
+                style={{ color:'rgba(255,255,255,0.35)', fontSize: 11, fontFamily:'inherit', letterSpacing:'1px', width: 110 }}
+              />
+            </>
+          )}
+
+          {/* Data de hoje — aparece no modo fechamento */}
+          {modoFechamento && (
+            <>
+              <div className="w-px h-4 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }} />
+              <span className="font-cond font-bold text-[11px] tracking-[1px] uppercase"
+                style={{ color:'rgba(255,140,0,0.6)' }}>
+                {new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' })}
+              </span>
+            </>
+          )}
         </div>
       </div>
 
@@ -152,8 +220,8 @@ export default function Dashboard() {
           <motion.div key={tab} className="h-full"
             initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-8 }}
             transition={{ duration:0.25, ease:'easeOut' }}>
-            {tab === 'vendedores' && <VendedoresTab vendedores={vendedores} vendas={vendas} equipes={equipes} />}
-            {tab === 'equipes'    && <EquipesTab equipes={equipes} vendedores={vendedores} vendas={vendas} />}
+            {tab === 'vendedores' && <VendedoresTab vendedores={vendedores} vendas={vendasVisiveis} equipes={equipes} modoFechamento={modoFechamento} />}
+            {tab === 'equipes'    && <EquipesTab equipes={equipes} vendedores={vendedores} vendas={vendasVisiveis} modoFechamento={modoFechamento} />}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -165,7 +233,7 @@ export default function Dashboard() {
             venda={celebracao.venda}
             vendedor={celebracao.vendedor}
             equipe={celebracao.equipe}
-            meta={meta}
+            meta={metaAtiva}
             totalAtual={celebracao.totalAtual}
             onClose={() => setCelebracao(null)}
           />
