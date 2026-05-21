@@ -2,65 +2,165 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { fmt } from '../../lib/utils'
 
-// Brasas espalhadas na base do card
-const EMBERS = [
-  { left:'18%', delay:'0s',    dur:'1.1s',  size:3, color:'#FF4500', dx:'-8px'  },
-  { left:'22%', delay:'0.6s',  dur:'1.4s',  size:2, color:'#FF6600', dx:'5px'   },
-  { left:'27%', delay:'0.15s', dur:'0.88s', size:4, color:'#FFD700', dx:'-6px'  },
-  { left:'31%', delay:'0.45s', dur:'1.2s',  size:3, color:'#FF4500', dx:'9px'   },
-  { left:'35%', delay:'0.8s',  dur:'1.05s', size:5, color:'#FF3300', dx:'-5px'  },
-  { left:'39%', delay:'0.25s', dur:'0.95s', size:2, color:'#FFAA00', dx:'7px'   },
-  { left:'43%', delay:'0.55s', dur:'1.3s',  size:4, color:'#FF5500', dx:'-10px' },
-  { left:'47%', delay:'0.1s',  dur:'1.0s',  size:6, color:'#FF4400', dx:'4px'   },
-  { left:'50%', delay:'0.7s',  dur:'0.85s', size:3, color:'#FFD700', dx:'-7px'  },
-  { left:'53%', delay:'0.35s', dur:'1.15s', size:2, color:'#FF6600', dx:'8px'   },
-  { left:'57%', delay:'0.05s', dur:'1.25s', size:4, color:'#FF4500', dx:'-5px'  },
-  { left:'61%', delay:'0.5s',  dur:'0.9s',  size:3, color:'#FF3300', dx:'11px'  },
-  { left:'65%', delay:'0.2s',  dur:'1.35s', size:5, color:'#FFAA00', dx:'-8px'  },
-  { left:'69%', delay:'0.75s', dur:'0.92s', size:2, color:'#FF6600', dx:'6px'   },
-  { left:'73%', delay:'0.4s',  dur:'1.1s',  size:3, color:'#FF4500', dx:'-9px'  },
-  { left:'77%', delay:'0.9s',  dur:'1.2s',  size:4, color:'#FFD700', dx:'5px'   },
-  { left:'24%', delay:'1.0s',  dur:'1.05s', size:2, color:'#FF5500', dx:'-4px'  },
-  { left:'44%', delay:'0.85s', dur:'0.95s', size:3, color:'#FF4400', dx:'7px'   },
-  { left:'56%', delay:'1.1s',  dur:'1.15s', size:2, color:'#FFD700', dx:'-6px'  },
-  { left:'71%', delay:'0.95s', dur:'1.08s', size:4, color:'#FF3300', dx:'5px'   },
+const FW_COLORS = [
+  '#FF3355','#FF6600','#FFDD00','#00FF88','#44AAFF',
+  '#BB44FF','#FF44CC','#00FFFF','#FFFFFF','#FFB300',
 ]
 
-function FireBase() {
-  return (
-    <>
-      {/* Glow de fogo na base */}
-      <div className="fixed bottom-0 left-0 right-0 pointer-events-none" style={{
-        height: '55vh',
-        background: 'radial-gradient(ellipse at 50% 100%, rgba(255,70,0,0.32) 0%, rgba(200,20,0,0.14) 45%, transparent 70%)',
-      }} />
+function FireworksCanvas() {
+  const canvasRef = useRef(null)
 
-      {/* Linha de fogo na base */}
-      <motion.div
-        className="fixed bottom-0 left-0 right-0 pointer-events-none"
-        style={{ height: 3, background: 'linear-gradient(90deg, transparent 5%, #FF4500 20%, #FF8C00 50%, #FF4500 80%, transparent 95%)' }}
-        initial={{ opacity: 0, scaleX: 0 }}
-        animate={{ opacity: [0, 1, 0.8, 1], scaleX: 1 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-      />
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const ctx    = canvas.getContext('2d')
+    let   raf    = null
 
-      {/* Brasas subindo */}
-      {EMBERS.map((e, i) => (
-        <div key={i} className="ember" style={{
-          position:    'fixed',
-          bottom:      'calc(50% - 215px)',
-          left:         e.left,
-          width:        e.size,
-          height:       e.size,
-          background:   e.color,
-          boxShadow:   `0 0 ${e.size + 2}px ${e.color}`,
-          '--ember-dx':    e.dx,
-          '--ember-dur':   e.dur,
-          '--ember-delay': e.delay,
-        }} />
-      ))}
-    </>
-  )
+    const resize = () => {
+      canvas.width  = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    const rockets   = []
+    const particles = []
+    const rand  = (a, b) => a + Math.random() * (b - a)
+    const pick  = arr  => arr[Math.floor(Math.random() * arr.length)]
+
+    function explode(x, y, color) {
+      const n = 90 + Math.floor(rand(0, 50))
+      for (let i = 0; i < n; i++) {
+        const angle = (i / n) * Math.PI * 2
+        const speed = rand(1.5, 5.5)
+        particles.push({
+          x, y, color,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size:  rand(1.5, 3.2),
+          alpha: 1,
+          decay: rand(0.010, 0.018),
+          trail: [],
+        })
+      }
+      for (let i = 0; i < 22; i++) {
+        const angle = rand(0, Math.PI * 2)
+        const speed = rand(0.5, 2.5)
+        particles.push({
+          x, y, color: '#FFFFFF',
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size:  rand(0.8, 1.8),
+          alpha: 1,
+          decay: rand(0.018, 0.030),
+          trail: [],
+        })
+      }
+    }
+
+    function launchRocket() {
+      const x       = rand(canvas.width * 0.08, canvas.width * 0.92)
+      const targetY = rand(canvas.height * 0.08, canvas.height * 0.48)
+      const dist    = canvas.height - targetY
+      rockets.push({
+        x, y: canvas.height,
+        targetY,
+        vy:    -dist / rand(28, 40),
+        color: pick(FW_COLORS),
+        trail: [],
+      })
+    }
+
+    let last = 0
+    const INTERVAL = 380
+
+    function frame(ts) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      if (ts - last > INTERVAL) {
+        launchRocket()
+        if (Math.random() > 0.45) launchRocket()
+        last = ts
+      }
+
+      for (let i = rockets.length - 1; i >= 0; i--) {
+        const r = rockets[i]
+        r.trail.push({ x: r.x, y: r.y })
+        if (r.trail.length > 10) r.trail.shift()
+        r.vy += 0.035
+        r.y  += r.vy
+
+        if (r.y <= r.targetY) {
+          explode(r.x, r.y, r.color)
+          rockets.splice(i, 1)
+          continue
+        }
+
+        r.trail.forEach((t, j) => {
+          ctx.save()
+          ctx.globalAlpha = (j / r.trail.length) * 0.5
+          ctx.fillStyle   = r.color
+          ctx.shadowColor = r.color
+          ctx.shadowBlur  = 8
+          ctx.beginPath()
+          ctx.arc(t.x, t.y, 1.5, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.restore()
+        })
+        ctx.save()
+        ctx.globalAlpha = 1
+        ctx.fillStyle   = '#ffffff'
+        ctx.shadowColor = r.color
+        ctx.shadowBlur  = 14
+        ctx.beginPath()
+        ctx.arc(r.x, r.y, 2.2, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.restore()
+      }
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i]
+        p.trail.push({ x: p.x, y: p.y })
+        if (p.trail.length > 4) p.trail.shift()
+        p.vx   *= 0.97
+        p.vy   += 0.06
+        p.x    += p.vx
+        p.y    += p.vy
+        p.alpha -= p.decay
+        p.size  *= 0.996
+
+        if (p.alpha <= 0) { particles.splice(i, 1); continue }
+
+        p.trail.forEach((t, j) => {
+          ctx.save()
+          ctx.globalAlpha = p.alpha * (j / p.trail.length) * 0.25
+          ctx.fillStyle   = p.color
+          ctx.beginPath()
+          ctx.arc(t.x, t.y, p.size * 0.5, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.restore()
+        })
+        ctx.save()
+        ctx.globalAlpha = p.alpha
+        ctx.fillStyle   = p.color
+        ctx.shadowColor = p.color
+        ctx.shadowBlur  = p.size * 2.5
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.restore()
+      }
+
+      raf = requestAnimationFrame(frame)
+    }
+
+    raf = requestAnimationFrame(frame)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', resize)
+    }
+  }, [])
+
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: 0 }} />
 }
 
 export default function CelebracaoCard({ venda, vendedor, equipe, meta, totalAtual, onClose }) {
@@ -99,8 +199,8 @@ export default function CelebracaoCard({ venda, vendedor, equipe, meta, totalAtu
       style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)' }}
       onClick={fechar}
     >
-      {/* Efeito de fogo na base */}
-      <FireBase />
+      {/* Fogos de artifício */}
+      <FireworksCanvas />
 
       {/* Card principal */}
       <motion.div

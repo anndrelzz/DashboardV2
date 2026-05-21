@@ -123,11 +123,12 @@ export default function VendedoresTab({ vendedores, vendas, modoFechamento }) {
       afterDatasetsDraw(chart) {
         const { ctx, scales: { x, y } } = chart
         ctx.save()
-        ctx.font         = "bold 20px 'Bebas Neue', sans-serif"
-        ctx.textAlign    = 'left'
-        ctx.textBaseline = 'middle'
-        ctx.shadowColor  = 'rgba(0,0,0,1)'
-        ctx.shadowBlur   = 10
+        ctx.font          = "bold 20px 'Bebas Neue', sans-serif"
+        ctx.letterSpacing = '2px'
+        ctx.textAlign     = 'left'
+        ctx.textBaseline  = 'middle'
+        ctx.shadowColor   = 'rgba(0,0,0,1)'
+        ctx.shadowBlur    = 10
         sorted.forEach((item, i) => {
           if (!item.val) return
           const yPos  = y.getPixelForValue(i)
