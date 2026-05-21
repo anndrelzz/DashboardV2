@@ -42,7 +42,7 @@ function RankItem({ item, index, maxVal, modoFechamento }) {
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-baseline mb-1">
           <span className="text-[12px] font-semibold truncate pr-2 leading-none">{item.v.nome}</span>
-          <span className="font-bebas text-[14px] leading-none flex-shrink-0"
+          <span className="font-bebas text-[16px] leading-none flex-shrink-0"
             style={{ color: isTop ? color : '#fff' }}>
             {fmt(item.val)}
           </span>
@@ -123,16 +123,16 @@ export default function VendedoresTab({ vendedores, vendas, modoFechamento }) {
       afterDatasetsDraw(chart) {
         const { ctx, scales: { x, y } } = chart
         ctx.save()
-        ctx.font         = "bold 14px 'Bebas Neue', sans-serif"
+        ctx.font         = "bold 20px 'Bebas Neue', sans-serif"
         ctx.textAlign    = 'left'
         ctx.textBaseline = 'middle'
-        ctx.shadowColor  = 'rgba(0,0,0,0.95)'
-        ctx.shadowBlur   = 5
+        ctx.shadowColor  = 'rgba(0,0,0,1)'
+        ctx.shadowBlur   = 10
         sorted.forEach((item, i) => {
           if (!item.val) return
           const yPos  = y.getPixelForValue(i)
           const xEnd  = x.getPixelForValue(item.val)
-          ctx.fillStyle = 'rgba(255,255,255,0.92)'
+          ctx.fillStyle = '#ffffff'
           ctx.fillText('R$ ' + Number(item.val).toLocaleString('pt-BR'), xEnd + 10, yPos)
         })
         ctx.shadowBlur = 0
