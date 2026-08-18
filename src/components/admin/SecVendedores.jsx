@@ -3,6 +3,8 @@ import { sb } from '../../lib/supabase'
 import { getMes, fmt, NIVEIS, NIVEL_CORES } from '../../lib/utils'
 import { toast } from '../ui/Toast'
 import Modal from '../ui/Modal'
+import SectionHeader from './SectionHeader'
+import { IconVendedores, IconUser, IconCamera, IconEdit, IconTrash, IconSearch } from './icons'
 
 const BUCKET = 'fotos-vendedores'
 
@@ -31,7 +33,15 @@ export default function SecVendedores({ equipes, vendedores, vendas, onRefresh }
   const [editFoto, setEditFoto]     = useState(null)
   const [editSaving, setEditSaving] = useState(false)
 
+  const [busca, setBusca] = useState('')
+
   const getMes_ = getMes()
+
+  const normalizar = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  const buscaNorm = normalizar(busca)
+  const vendedoresFiltrados = buscaNorm
+    ? vendedores.filter(v => normalizar(v.nome).includes(buscaNorm) || normalizar(v.empresa).includes(buscaNorm))
+    : vendedores
 
   const cadastrar = async () => {
     if (!nome.trim()) { toast('Informe o nome', false); return }
@@ -88,19 +98,16 @@ export default function SecVendedores({ equipes, vendedores, vendas, onRefresh }
   const inputBg  = { background:'#1F1F1F' }
 
   return (
-    <div className="p-8 max-w-5xl flex flex-col gap-6">
-      <div>
-        <h1 className="font-bebas text-3xl tracking-[2px]">Vendedores</h1>
-        <p className="text-sm text-muted mt-1">Cadastre e gerencie vendedores</p>
-      </div>
+    <div className="p-10 flex flex-col gap-8">
+      <SectionHeader icon={<IconVendedores size={20} />} title="Vendedores" subtitle="Cadastre e gerencie vendedores" />
 
       {/* Formulário cadastro */}
-      <div className="rounded-xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.08)' }}>
-        <div className="px-5 py-4 border-b" style={{ borderColor:'rgba(255,255,255,0.08)' }}>
+      <div className="rounded-2xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.07)' }}>
+        <div className="px-6 py-4.5 border-b" style={{ borderColor:'rgba(255,255,255,0.07)' }}>
           <span className="font-cond font-bold text-sm tracking-[2px] uppercase">Cadastrar Vendedor</span>
         </div>
         <div className="p-6 flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Nome Completo</label>
               <input type="text" value={nome} onChange={e=>setNome(e.target.value)} placeholder="Ex: João Silva" className={inputCls} style={inputBg} />
@@ -129,10 +136,16 @@ export default function SecVendedores({ equipes, vendedores, vendas, onRefresh }
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Foto do Vendedor</label>
             <div className="flex items-center gap-4">
-              {foto && <img src={URL.createObjectURL(foto)} className="w-14 h-14 rounded-full object-cover border-2 border-red/40" alt="preview" />}
-              <label className="cursor-pointer px-4 py-2.5 rounded-lg border text-sm font-semibold text-muted hover:text-white hover:border-white/20 transition-colors"
+              {foto
+                ? <img src={URL.createObjectURL(foto)} className="w-14 h-14 rounded-full object-cover border-2 border-red/40" alt="preview" />
+                : <div className="w-14 h-14 rounded-full flex items-center justify-center border" style={{ background:'#1F1F1F', borderColor:'rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.3)' }}>
+                    <IconUser size={22} />
+                  </div>
+              }
+              <label className="inline-flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-lg border text-sm font-semibold text-muted hover:text-white hover:border-white/20 transition-colors"
                 style={{ background:'#1F1F1F', borderColor:'rgba(255,255,255,0.1)' }}>
-                {foto ? 'Trocar foto' : '+ Selecionar foto'}
+                <IconCamera size={15} />
+                {foto ? 'Trocar foto' : 'Selecionar foto'}
                 <input type="file" accept="image/*" className="hidden" onChange={e => setFoto(e.target.files[0])} />
               </label>
               {foto && <span className="text-[12px] text-muted">{foto.name}</span>}
@@ -150,56 +163,67 @@ export default function SecVendedores({ equipes, vendedores, vendas, onRefresh }
       </div>
 
       {/* Lista */}
-      <div className="rounded-xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.08)' }}>
-        <div className="px-5 py-4 border-b" style={{ borderColor:'rgba(255,255,255,0.08)' }}>
-          <span className="font-cond font-bold text-sm tracking-[2px] uppercase">Lista de Vendedores</span>
+      <div className="rounded-2xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.07)' }}>
+        <div className="px-6 py-4.5 border-b flex items-center justify-between gap-4" style={{ borderColor:'rgba(255,255,255,0.07)' }}>
+          <span className="font-cond font-bold text-sm tracking-[2px] uppercase flex-shrink-0">
+            Lista de Vendedores {buscaNorm && <span className="text-muted normal-case tracking-normal font-normal">({vendedoresFiltrados.length} de {vendedores.length})</span>}
+          </span>
+          <div className="relative w-72">
+            <IconSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color:'rgba(255,255,255,0.3)' }} />
+            <input type="text" value={busca} onChange={e=>setBusca(e.target.value)}
+              placeholder="Buscar por nome ou empresa..."
+              className="w-full rounded-lg pl-9 pr-3 py-2 text-white text-[13px] outline-none border border-white/10 focus:border-red/40 transition-colors"
+              style={{ background:'#1F1F1F' }} />
+          </div>
         </div>
         <table className="w-full">
           <thead>
-            <tr style={{ background:'#1F1F1F' }}>
+            <tr style={{ background:'#1c1c1c' }}>
               {['Foto','Nome','Empresa','Nível','Equipe','Vendas','Total',  ''].map(h => (
-                <th key={h} className="text-left px-4 py-3 text-[10px] font-bold tracking-[2px] uppercase text-muted border-b"
-                  style={{ borderColor:'rgba(255,255,255,0.08)' }}>{h}</th>
+                <th key={h} className="text-left px-5 py-3.5 text-[10.5px] font-bold tracking-[2px] uppercase text-muted border-b"
+                  style={{ borderColor:'rgba(255,255,255,0.07)' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {vendedores.length === 0 ? (
-              <tr><td colSpan={8} className="text-center py-10 text-muted text-[13px] tracking-wider uppercase">Nenhum vendedor cadastrado</td></tr>
-            ) : vendedores.map(v => {
+              <tr><td colSpan={8} className="text-center py-14 text-muted text-[13px] tracking-wider uppercase">Nenhum vendedor cadastrado</td></tr>
+            ) : vendedoresFiltrados.length === 0 ? (
+              <tr><td colSpan={8} className="text-center py-14 text-muted text-[13px] tracking-wider uppercase">Nenhum vendedor encontrado para "{busca}"</td></tr>
+            ) : vendedoresFiltrados.map(v => {
               const eq = equipes.find(e => e.id === v.equipe_id)
               const minhas = vendas.filter(x => x.vendedor_id === v.id)
               const total  = minhas.reduce((a, b) => a + Number(b.valor), 0)
               return (
                 <tr key={v.id} className="border-b last:border-0 hover:bg-white/[0.02] transition-colors"
-                  style={{ borderColor:'rgba(255,255,255,0.06)' }}>
-                  <td className="px-4 py-3">
+                  style={{ borderColor:'rgba(255,255,255,0.05)' }}>
+                  <td className="px-5 py-3.5">
                     {v.foto_url
                       ? <img src={v.foto_url} className="w-9 h-9 rounded-full object-cover border border-white/10" alt={v.nome} />
-                      : <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm" style={{background:'#282828'}}>👤</div>
+                      : <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{background:'#282828', color:'rgba(255,255,255,0.3)'}}><IconUser size={16} /></div>
                     }
                   </td>
-                  <td className="px-4 py-3 text-[13px] font-semibold">{v.nome}</td>
-                  <td className="px-4 py-3 text-[13px] text-muted">{v.empresa || '—'}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-3.5 text-[13.5px] font-semibold">{v.nome}</td>
+                  <td className="px-5 py-3.5 text-[13px] text-muted">{v.empresa || '—'}</td>
+                  <td className="px-5 py-3.5">
                     {v.nivel ? <span className="text-[12px] font-bold" style={{color:NIVEL_CORES[v.nivel]||'#fff'}}>{v.nivel}</span> : '—'}
                   </td>
-                  <td className="px-4 py-3">
-                    {eq ? <span className="px-2 py-0.5 rounded text-[11px] font-bold text-red border border-red/25" style={{background:'rgba(232,0,13,0.08)'}}>{eq.nome}</span> : <span className="text-dim text-[12px]">—</span>}
+                  <td className="px-5 py-3.5">
+                    {eq ? <span className="px-2.5 py-1 rounded text-[11px] font-bold text-red border border-red/25" style={{background:'rgba(232,0,13,0.08)'}}>{eq.nome}</span> : <span className="text-dim text-[12px]">—</span>}
                   </td>
-                  <td className="px-4 py-3 text-[13px] text-muted">{minhas.length}</td>
-                  <td className="px-4 py-3 font-bebas text-[15px] text-red">{fmt(total)}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-3.5 text-[13px] text-muted">{minhas.length}</td>
+                  <td className="px-5 py-3.5 font-bebas text-[15px] text-red">{fmt(total)}</td>
+                  <td className="px-5 py-3.5">
                     <div className="flex gap-2">
                       <button onClick={() => abrirEdicao(v)}
-                        className="px-2.5 py-1 rounded text-[11px] font-bold tracking-wide border text-muted border-white/15 hover:text-white hover:border-white/30 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11px] font-bold tracking-wide border text-muted border-white/15 hover:text-white hover:border-white/30 transition-colors"
                         style={{background:'#282828'}}>
-                        Editar
+                        <IconEdit size={12} />Editar
                       </button>
                       <button onClick={() => remover(v.id)}
-                        className="px-2.5 py-1 rounded text-[11px] font-bold tracking-wide border text-red border-red/20 hover:bg-red/10 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11px] font-bold tracking-wide border text-red border-red/20 hover:bg-red/10 transition-colors"
                         style={{background:'rgba(239,68,68,0.06)'}}>
-                        Remover
+                        <IconTrash size={12} />Remover
                       </button>
                     </div>
                   </td>
@@ -242,16 +266,21 @@ export default function SecVendedores({ equipes, vendedores, vendas, onRefresh }
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Foto</label>
             <div className="flex items-center gap-4">
-              {(editFoto || editando?.foto_url) && (
+              {(editFoto || editando?.foto_url) ? (
                 <img
                   src={editFoto ? URL.createObjectURL(editFoto) : editando?.foto_url}
                   className="w-14 h-14 rounded-full object-cover border-2 border-red/40"
                   alt="preview"
                 />
+              ) : (
+                <div className="w-14 h-14 rounded-full flex items-center justify-center border" style={{ background:'#1F1F1F', borderColor:'rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.3)' }}>
+                  <IconUser size={22} />
+                </div>
               )}
-              <label className="cursor-pointer px-4 py-2.5 rounded-lg border text-sm font-semibold text-muted hover:text-white hover:border-white/20 transition-colors"
+              <label className="inline-flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-lg border text-sm font-semibold text-muted hover:text-white hover:border-white/20 transition-colors"
                 style={{ background:'#1F1F1F', borderColor:'rgba(255,255,255,0.1)' }}>
-                {editFoto ? 'Trocar foto' : editando?.foto_url ? 'Mudar foto' : '+ Selecionar foto'}
+                <IconCamera size={15} />
+                {editFoto ? 'Trocar foto' : editando?.foto_url ? 'Mudar foto' : 'Selecionar foto'}
                 <input type="file" accept="image/*" className="hidden" onChange={e => setEditFoto(e.target.files[0])} />
               </label>
             </div>

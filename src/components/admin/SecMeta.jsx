@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { sb } from '../../lib/supabase'
 import { getMes, fmt } from '../../lib/utils'
 import { toast } from '../ui/Toast'
+import SectionHeader from './SectionHeader'
+import { IconMeta, IconFlame } from './icons'
 
 export default function SecMeta({ meta, metaFechamento, onRefresh }) {
   const [valorMes,       setValorMes]       = useState(meta           || '')
@@ -32,15 +34,14 @@ export default function SecMeta({ meta, metaFechamento, onRefresh }) {
   }
 
   return (
-    <div className="p-8 max-w-2xl flex flex-col gap-8">
-      {/* Meta do Mês */}
-      <div>
-        <h1 className="font-bebas text-3xl tracking-[2px] mb-1">Meta do Mês</h1>
-        <p className="text-sm text-muted mb-6">Defina a meta mensal de vendas</p>
+    <div className="p-10 flex flex-col gap-8">
+      <SectionHeader icon={<IconMeta size={20} />} title="Metas" subtitle="Defina a meta mensal e a meta do dia de fechamento" />
 
-        <div className="rounded-xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.08)' }}>
-          <div className="px-5 py-4 border-b" style={{ borderColor:'rgba(255,255,255,0.08)' }}>
-            <span className="font-cond font-bold text-sm tracking-[2px] uppercase">Configurar Meta Mensal</span>
+      <div className="grid grid-cols-2 gap-6 items-start">
+        {/* Meta do Mês */}
+        <div className="rounded-2xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.07)' }}>
+          <div className="px-6 py-4.5 border-b" style={{ borderColor:'rgba(255,255,255,0.07)' }}>
+            <span className="font-cond font-bold text-sm tracking-[2px] uppercase">Meta do Mês</span>
           </div>
           <div className="p-6 flex flex-col gap-5">
             {meta > 0 && (
@@ -71,16 +72,12 @@ export default function SecMeta({ meta, metaFechamento, onRefresh }) {
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Meta de Fechamento */}
-      <div>
-        <h1 className="font-bebas text-3xl tracking-[2px] mb-1">Meta de Fechamento</h1>
-        <p className="text-sm text-muted mb-6">Defina a meta para o dia do fechamento</p>
-
-        <div className="rounded-xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,140,0,0.2)' }}>
-          <div className="px-5 py-4 border-b flex items-center gap-3" style={{ borderColor:'rgba(255,140,0,0.2)', background:'rgba(255,100,0,0.04)' }}>
-            <span className="font-cond font-bold text-sm tracking-[2px] uppercase" style={{ color:'#FF8C00' }}>🔥 Configurar Meta de Fechamento</span>
+        {/* Meta de Fechamento */}
+        <div className="rounded-2xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,140,0,0.2)' }}>
+          <div className="px-6 py-4.5 border-b flex items-center gap-2.5" style={{ borderColor:'rgba(255,140,0,0.2)', background:'rgba(255,100,0,0.04)' }}>
+            <IconFlame size={16} className="flex-shrink-0" style={{ color:'#FF8C00' }} />
+            <span className="font-cond font-bold text-sm tracking-[2px] uppercase" style={{ color:'#FF8C00' }}>Meta de Fechamento</span>
           </div>
           <div className="p-6 flex flex-col gap-5">
             {metaFechamento > 0 && (

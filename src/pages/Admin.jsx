@@ -9,6 +9,7 @@ import SecMeta from '../components/admin/SecMeta'
 import SecVendas from '../components/admin/SecVendas'
 import SecVendedores from '../components/admin/SecVendedores'
 import SecEquipes from '../components/admin/SecEquipes'
+import SecConferencia from '../components/admin/SecConferencia'
 import Toast from '../components/ui/Toast'
 import Spinner from '../components/ui/Spinner'
 
@@ -56,6 +57,7 @@ export default function Admin() {
         {section === 'vendas'      && <SecVendas {...secProps} />}
         {section === 'vendedores'  && <SecVendedores {...secProps} />}
         {section === 'equipes'     && <SecEquipes {...secProps} />}
+        {section === 'conferencia' && <SecConferencia {...secProps} />}
       </div>
 
       <Toast />

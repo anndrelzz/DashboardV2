@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { sb } from '../../lib/supabase'
 import { fmt } from '../../lib/utils'
 import { toast } from '../ui/Toast'
+import SectionHeader from './SectionHeader'
+import { IconEquipes, IconTrash } from './icons'
 
 export default function SecEquipes({ equipes, vendedores, vendas, onRefresh }) {
   const [nome, setNome]     = useState('')
@@ -26,14 +28,11 @@ export default function SecEquipes({ equipes, vendedores, vendas, onRefresh }) {
   }
 
   return (
-    <div className="p-8 max-w-3xl flex flex-col gap-6">
-      <div>
-        <h1 className="font-bebas text-3xl tracking-[2px]">Equipes</h1>
-        <p className="text-sm text-muted mt-1">Cadastre e gerencie equipes</p>
-      </div>
+    <div className="p-10 flex flex-col gap-8">
+      <SectionHeader icon={<IconEquipes size={20} />} title="Equipes" subtitle="Cadastre e gerencie equipes" />
 
-      <div className="rounded-xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.08)' }}>
-        <div className="px-5 py-4 border-b" style={{ borderColor:'rgba(255,255,255,0.08)' }}>
+      <div className="rounded-2xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.07)' }}>
+        <div className="px-6 py-4.5 border-b" style={{ borderColor:'rgba(255,255,255,0.07)' }}>
           <span className="font-cond font-bold text-sm tracking-[2px] uppercase">Cadastrar Equipe</span>
         </div>
         <div className="p-6 flex gap-4 items-end">
@@ -57,36 +56,36 @@ export default function SecEquipes({ equipes, vendedores, vendas, onRefresh }) {
         </div>
       </div>
 
-      <div className="rounded-xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.08)' }}>
-        <div className="px-5 py-4 border-b" style={{ borderColor:'rgba(255,255,255,0.08)' }}>
+      <div className="rounded-2xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.07)' }}>
+        <div className="px-6 py-4.5 border-b" style={{ borderColor:'rgba(255,255,255,0.07)' }}>
           <span className="font-cond font-bold text-sm tracking-[2px] uppercase">Lista de Equipes</span>
         </div>
         <table className="w-full">
           <thead>
-            <tr style={{ background:'#1F1F1F' }}>
+            <tr style={{ background:'#1c1c1c' }}>
               {['Nome da Equipe','Membros','Total no Mês',''].map(h => (
-                <th key={h} className="text-left px-5 py-3 text-[10px] font-bold tracking-[2px] uppercase text-muted border-b"
-                  style={{ borderColor:'rgba(255,255,255,0.08)' }}>{h}</th>
+                <th key={h} className="text-left px-6 py-3.5 text-[10.5px] font-bold tracking-[2px] uppercase text-muted border-b"
+                  style={{ borderColor:'rgba(255,255,255,0.07)' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {equipes.length === 0 ? (
-              <tr><td colSpan={4} className="text-center py-10 text-muted text-[13px] tracking-wider uppercase">Nenhuma equipe cadastrada</td></tr>
+              <tr><td colSpan={4} className="text-center py-14 text-muted text-[13px] tracking-wider uppercase">Nenhuma equipe cadastrada</td></tr>
             ) : equipes.map(e => {
               const membros = vendedores.filter(v => v.equipe_id === e.id)
               const total   = vendas.filter(v => membros.find(m => m.id === v.vendedor_id)).reduce((a,b) => a+Number(b.valor), 0)
               return (
                 <tr key={e.id} className="border-b last:border-0 hover:bg-white/[0.02] transition-colors"
-                  style={{ borderColor:'rgba(255,255,255,0.06)' }}>
-                  <td className="px-5 py-3 text-[13px] font-semibold">{e.nome}</td>
-                  <td className="px-5 py-3 text-[13px] text-muted">{membros.length} membro(s)</td>
-                  <td className="px-5 py-3 font-bebas text-[15px] text-red">{fmt(total)}</td>
-                  <td className="px-5 py-3">
+                  style={{ borderColor:'rgba(255,255,255,0.05)' }}>
+                  <td className="px-6 py-3.5 text-[13.5px] font-semibold">{e.nome}</td>
+                  <td className="px-6 py-3.5 text-[13px] text-muted">{membros.length} membro(s)</td>
+                  <td className="px-6 py-3.5 font-bebas text-[15px] text-red">{fmt(total)}</td>
+                  <td className="px-6 py-3.5">
                     <button onClick={() => remover(e.id)}
-                      className="px-2.5 py-1 rounded text-[11px] font-bold tracking-wide border text-red border-red/20 hover:bg-red/10 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11px] font-bold tracking-wide border text-red border-red/20 hover:bg-red/10 transition-colors"
                       style={{background:'rgba(239,68,68,0.06)'}}>
-                      Remover
+                      <IconTrash size={12} />Remover
                     </button>
                   </td>
                 </tr>
