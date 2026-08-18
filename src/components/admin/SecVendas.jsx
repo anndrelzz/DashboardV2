@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { sb } from '../../lib/supabase'
-import { getMes, fmt } from '../../lib/utils'
+import useStore from '../../store/useStore'
+import { getMes, fmt, getDiaFechamento } from '../../lib/utils'
 import { toast } from '../ui/Toast'
 
 export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
+  const mesExibido = useStore(s => s.mes)
   const [vendId, setVendId]   = useState('')
   const [valor, setValor]     = useState('')
-  const [data, setData]       = useState(new Date().toISOString().slice(0,10))
+  const [data, setData]       = useState(getDiaFechamento())
   const [tipo, setTipo]       = useState('')
   const [desc, setDesc]       = useState('')
   const [saving, setSaving]   = useState(false)
@@ -36,8 +38,8 @@ export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
   }
 
   const limpar = async () => {
-    if (!confirm('Limpar todas as vendas do mês?')) return
-    await sb.from('vendas').delete().eq('mes', getMes())
+    if (!confirm(`Limpar todas as vendas de ${mesExibido}?`)) return
+    await sb.from('vendas').delete().eq('mes', mesExibido)
     await onRefresh()
     toast('Vendas do mês removidas')
   }

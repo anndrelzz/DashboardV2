@@ -34,3 +34,20 @@ export const TOP_BORDER = [
   'rgba(192,192,192,0.28)',
   'rgba(205,127,50,0.35)',
 ]
+
+// Data local no formato YYYY-MM-DD.
+// Não use toISOString() para isso: ele converte para UTC e, em Joinville (UTC-3),
+// a partir das 21h já devolve o dia seguinte.
+export const toISODateLocal = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+// Até que horas a madrugada ainda conta como o dia anterior no modo Fechamento
+export const HORA_CORTE_FECHAMENTO = 4
+
+// Dia do fechamento: é o dia de hoje, mas antes das 4h da manhã ainda conta como
+// o dia anterior — a equipe costuma lançar vendas até depois da meia-noite.
+export const getDiaFechamento = (agora = new Date()) => {
+  const d = new Date(agora)
+  if (d.getHours() < HORA_CORTE_FECHAMENTO) d.setDate(d.getDate() - 1)
+  return toISODateLocal(d)
+}

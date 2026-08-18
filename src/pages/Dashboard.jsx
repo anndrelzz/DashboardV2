@@ -8,6 +8,7 @@ import VendedoresTab from '../components/dashboard/VendedoresTab'
 import EquipesTab from '../components/dashboard/EquipesTab'
 import CelebracaoCard from '../components/dashboard/CelebracaoCard'
 import AgendamentosTab from '../components/dashboard/AgendamentosTab'
+import { getDiaFechamento } from '../lib/utils'
 
 function Spinner() {
   return (
@@ -30,6 +31,13 @@ export default function Dashboard() {
   const [tab,              setTab]              = useState('vendedores')
   const [celebracao,       setCelebracao]       = useState(null)
   const [modoAgendamentos, setModoAgendamentos] = useState(false)
+  const [agora,            setAgora]            = useState(() => new Date())
+
+  // Relógio de minuto em minuto: faz o dia do fechamento virar sozinho na tela
+  useEffect(() => {
+    const iv = setInterval(() => setAgora(new Date()), 60_000)
+    return () => clearInterval(iv)
+  }, [])
 
   useEffect(() => {
     ;(async () => {
@@ -67,11 +75,19 @@ export default function Dashboard() {
 
   const trocarMes = useCallback(async val => { setMes(val); await carregarDados(val) }, [])
 
-  // Filtro de vendas: no modo fechamento mostra só as vendas cuja DATA é hoje
-  const hoje = new Date().toISOString().split('T')[0]
+  // Filtro de vendas: no modo fechamento mostra só as vendas do dia do fechamento
+  const diaFechamento  = getDiaFechamento(agora)
   const vendasVisiveis = modoFechamento
-    ? vendas.filter(v => v.data === hoje)
+    ? vendas.filter(v => String(v.data).slice(0, 10) === diaFechamento)
     : vendas
+
+  // Depois da meia-noite o dia do fechamento pode cair no mês anterior:
+  // garante que as vendas carregadas sejam as do mês desse dia
+  useEffect(() => {
+    if (!authed || !modoFechamento) return
+    const mesFechamento = diaFechamento.slice(0, 7)
+    if (mesFechamento !== mes) trocarMes(mesFechamento)
+  }, [authed, modoFechamento, diaFechamento, mes, trocarMes])
 
   const metaAtiva    = modoFechamento ? metaFechamento : meta
   const totalVendas  = vendasVisiveis.reduce((a, b) => a + Number(b.valor), 0)
@@ -217,7 +233,7 @@ export default function Dashboard() {
               <div className="w-px h-4 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }} />
               <span className="font-cond font-bold text-[11px] tracking-[1px] uppercase"
                 style={{ color:'rgba(255,140,0,0.6)' }}>
-                {new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' })}
+                {new Date(diaFechamento + 'T12:00:00').toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' })}
               </span>
             </>
           )}
