@@ -47,8 +47,8 @@ export default function MercadoWidget() {
         }
       } catch {}
 
-      list.push({ nome:'SELIC', valor:'14,75%', var:null })
-      list.push({ nome:'CDI',   valor:'14,65%', var:null })
+      list.push({ nome:'SELIC', valor:'14,00%', var:null })
+      list.push({ nome:'CDI',   valor:'13,90%', var:null })
 
       setItems(list)
     } catch {
