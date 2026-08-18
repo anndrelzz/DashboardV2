@@ -156,7 +156,7 @@ export default function Dashboard() {
             style={{ borderColor: modoFechamento ? 'rgba(255,140,0,0.35)' : 'rgba(255,255,255,0.1)', background:'#111' }}>
             {[
               { id: false, label: 'Dia-Dia' },
-              { id: true,  label: '🔥 Fechamento' },
+              { id: true,  label: 'Fechamento' },
             ].map(({ id, label }) => {
               const isActive = !modoAgendamentos && modoFechamento === id
               return (
