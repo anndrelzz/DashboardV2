@@ -7,7 +7,6 @@ import Navbar from '../components/dashboard/Navbar'
 import VendedoresTab from '../components/dashboard/VendedoresTab'
 import EquipesTab from '../components/dashboard/EquipesTab'
 import CelebracaoCard from '../components/dashboard/CelebracaoCard'
-import AgendamentosTab from '../components/dashboard/AgendamentosTab'
 import { getDiaFechamento } from '../lib/utils'
 
 function Spinner() {
@@ -30,7 +29,6 @@ export default function Dashboard() {
   const [checking,         setChecking]         = useState(true)
   const [tab,              setTab]              = useState('vendedores')
   const [celebracao,       setCelebracao]       = useState(null)
-  const [modoAgendamentos, setModoAgendamentos] = useState(false)
   const [agora,            setAgora]            = useState(() => new Date())
 
   // Relógio de minuto em minuto: faz o dia do fechamento virar sozinho na tela
@@ -134,7 +132,7 @@ export default function Dashboard() {
           { id:'vendedores', label:'Vendedores' },
           { id:'equipes',    label:'Equipes' },
         ].map(t => (
-          <button key={t.id} onClick={() => { setTab(t.id); setModoAgendamentos(false) }}
+          <button key={t.id} onClick={() => setTab(t.id)}
             className="relative font-cond font-bold text-sm tracking-[2.5px] uppercase py-3.5 px-7 transition-all"
             style={{ color: tab === t.id ? '#fff' : 'rgba(255,255,255,0.35)' }}
           >
@@ -158,10 +156,10 @@ export default function Dashboard() {
               { id: false, label: 'Dia-Dia' },
               { id: true,  label: 'Fechamento' },
             ].map(({ id, label }) => {
-              const isActive = !modoAgendamentos && modoFechamento === id
+              const isActive = modoFechamento === id
               return (
                 <button key={String(id)}
-                  onClick={() => { setModoFechamento(id); setModoAgendamentos(false) }}
+                  onClick={() => setModoFechamento(id)}
                   className="px-4 py-1.5 font-cond font-bold text-xs tracking-[1.5px] uppercase transition-all"
                   style={{
                     background: isActive
@@ -174,22 +172,6 @@ export default function Dashboard() {
               )
             })}
           </div>
-
-          {/* Botão Agendamentos */}
-          <button
-            onClick={() => setModoAgendamentos(v => !v)}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg font-cond font-bold text-xs tracking-[1.5px] uppercase transition-all"
-            style={{
-              background: modoAgendamentos
-                ? 'linear-gradient(90deg,#1a4db5,#2563eb)'
-                : 'rgba(37,99,235,0.12)',
-              color: modoAgendamentos ? '#fff' : 'rgba(96,165,250,0.75)',
-              border: `1px solid ${modoAgendamentos ? 'rgba(37,99,235,0.7)' : 'rgba(37,99,235,0.25)'}`,
-              boxShadow: modoAgendamentos ? '0 0 18px rgba(37,99,235,0.4)' : 'none',
-            }}
-          >
-            📅 Agendamentos
-          </button>
 
           <div className="w-px h-4 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }} />
 
@@ -252,16 +234,12 @@ export default function Dashboard() {
       {/* Conteúdo das tabs */}
       <main className="flex-1 overflow-hidden p-5">
         <AnimatePresence mode="wait">
-          {modoAgendamentos ? (
-            <AgendamentosTab key="agendamentos" />
-          ) : (
-            <motion.div key={tab} className="h-full"
-              initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-8 }}
-              transition={{ duration:0.25, ease:'easeOut' }}>
-              {tab === 'vendedores' && <VendedoresTab vendedores={vendedores} vendas={vendasVisiveis} equipes={equipes} modoFechamento={modoFechamento} />}
-              {tab === 'equipes'    && <EquipesTab equipes={equipes} vendedores={vendedores} vendas={vendasVisiveis} modoFechamento={modoFechamento} />}
-            </motion.div>
-          )}
+          <motion.div key={tab} className="h-full"
+            initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-8 }}
+            transition={{ duration:0.25, ease:'easeOut' }}>
+            {tab === 'vendedores' && <VendedoresTab vendedores={vendedores} vendas={vendasVisiveis} equipes={equipes} modoFechamento={modoFechamento} />}
+            {tab === 'equipes'    && <EquipesTab equipes={equipes} vendedores={vendedores} vendas={vendasVisiveis} modoFechamento={modoFechamento} />}
+          </motion.div>
         </AnimatePresence>
       </main>
 
