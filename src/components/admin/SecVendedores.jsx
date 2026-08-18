@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { sb } from '../../lib/supabase'
-import { getMes, fmt, NIVEIS, NIVEL_CORES } from '../../lib/utils'
+import { fmt, NIVEIS, NIVEL_CORES, normalizarBusca } from '../../lib/utils'
 import { toast } from '../ui/Toast'
 import Modal from '../ui/Modal'
 import SectionHeader from './SectionHeader'
@@ -35,12 +35,9 @@ export default function SecVendedores({ equipes, vendedores, vendas, onRefresh }
 
   const [busca, setBusca] = useState('')
 
-  const getMes_ = getMes()
-
-  const normalizar = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-  const buscaNorm = normalizar(busca)
+  const buscaNorm = normalizarBusca(busca)
   const vendedoresFiltrados = buscaNorm
-    ? vendedores.filter(v => normalizar(v.nome).includes(buscaNorm) || normalizar(v.empresa).includes(buscaNorm))
+    ? vendedores.filter(v => normalizarBusca(v.nome).includes(buscaNorm) || normalizarBusca(v.empresa).includes(buscaNorm))
     : vendedores
 
   const cadastrar = async () => {

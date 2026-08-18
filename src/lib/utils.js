@@ -51,3 +51,18 @@ export const getDiaFechamento = (agora = new Date()) => {
   if (d.getHours() < HORA_CORTE_FECHAMENTO) d.setDate(d.getDate() - 1)
   return toISODateLocal(d)
 }
+
+// Normaliza texto pra busca: minúsculo e sem acento (ex: "José" -> "jose")
+export const normalizarBusca = (s) =>
+  (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+
+// Compara o valor informado pelo vendedor com o total já lançado no dashboard.
+// margem evita falso "diverge" por erro de arredondamento de ponto flutuante.
+export const compararConferencia = (dashboard, bruto, margem = 0.005) => {
+  const temInformado = bruto !== undefined && bruto !== null && bruto !== ''
+  if (!temInformado) return { temInformado: false, valorInformado: null, diff: null, bate: false }
+  const valorInformado = parseFloat(bruto)
+  if (Number.isNaN(valorInformado)) return { temInformado: false, valorInformado: null, diff: null, bate: false }
+  const diff = valorInformado - dashboard
+  return { temInformado: true, valorInformado, diff, bate: Math.abs(diff) < margem }
+}

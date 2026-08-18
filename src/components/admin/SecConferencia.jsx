@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { sb } from '../../lib/supabase'
 import useStore from '../../store/useStore'
-import { fmt, getDiaFechamento } from '../../lib/utils'
+import { fmt, getDiaFechamento, normalizarBusca, compararConferencia } from '../../lib/utils'
 import { toast } from '../ui/Toast'
 import Modal from '../ui/Modal'
 import SectionHeader from './SectionHeader'
 import { IconScale, IconSearch, IconCheck, IconX, IconHome, IconCar, IconWrench } from './icons'
 
-const normalizar = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 const chaveStorage = mes => `vendamax_conferencia_${mes}`
 
 const TIPOS = [
@@ -80,21 +79,18 @@ export default function SecConferencia({ vendedores, equipes, vendas, onRefresh 
     toast('Diferença lançada!')
   }
 
-  const buscaNorm = normalizar(busca)
+  const buscaNorm = normalizarBusca(busca)
 
   const linhas = vendedores.map(v => {
     const eq = equipes.find(e => e.id === v.equipe_id)
     const dashboard = vendas.filter(x => x.vendedor_id === v.id).reduce((a, b) => a + Number(b.valor), 0)
     const bruto = informado[v.id]
-    const temInformado = bruto !== undefined && bruto !== ''
-    const valorInformado = temInformado ? parseFloat(bruto) : null
-    const diff = temInformado && !Number.isNaN(valorInformado) ? valorInformado - dashboard : null
-    const bate = diff !== null && Math.abs(diff) < 0.005
+    const { temInformado, diff, bate } = compararConferencia(dashboard, bruto)
     return { v, eq, dashboard, bruto: bruto ?? '', temInformado, diff, bate }
   })
 
   const filtradas = linhas.filter(l => {
-    if (buscaNorm && !normalizar(l.v.nome).includes(buscaNorm) && !normalizar(l.v.empresa).includes(buscaNorm)) return false
+    if (buscaNorm && !normalizarBusca(l.v.nome).includes(buscaNorm) && !normalizarBusca(l.v.empresa).includes(buscaNorm)) return false
     if (soPendencias && l.temInformado && l.bate) return false
     return true
   })
