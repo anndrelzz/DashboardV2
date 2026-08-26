@@ -106,7 +106,7 @@ export default function EquipesSemanaTab({ equipes, vendedores, vendas, semanaFe
                         {fmt(x.val)}
                       </span>
                     </div>
-                    <div className="h-0.5 rounded-full overflow-hidden" style={{ background:'rgba(255,255,255,0.07)' }}>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background:'rgba(255,255,255,0.25)' }}>
                       <motion.div className="h-full rounded-full"
                         style={{ background: isTop ? color : 'rgba(232,0,13,0.6)' }}
                         initial={{ width:0 }} animate={{ width:`${pct}%` }}
@@ -136,36 +136,36 @@ export default function EquipesSemanaTab({ equipes, vendedores, vendas, semanaFe
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
-                    <th className="text-left pb-3 pr-3 font-cond font-bold text-[10px] tracking-[1.5px] uppercase text-muted sticky left-0" style={{ background:'inherit' }}>
+                    <th className="text-left pb-4 pr-3 font-cond font-bold text-[14px] tracking-[1.5px] uppercase text-white sticky left-0" style={{ background:'inherit' }}>
                       Equipe
                     </th>
                     {dias.map(dia => (
-                      <th key={dia} className="text-right pb-3 px-2.5 font-cond font-bold text-[10px] tracking-[1px] uppercase text-muted whitespace-nowrap">
+                      <th key={dia} className="text-right pb-4 px-2.5 font-cond font-bold text-[16px] tracking-[1px] uppercase text-white whitespace-nowrap">
                         {fmtDiaMes(dia)}
                       </th>
                     ))}
-                    <th className="text-right pb-3 pl-3 font-cond font-bold text-[10px] tracking-[1.5px] uppercase" style={{ color:'#E8000D' }}>
+                    <th className="text-right pb-4 pl-3 font-cond font-bold text-[14px] tracking-[1.5px] uppercase" style={{ color:'#E8000D' }}>
                       Total
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {sorted.map((x, i) => (
-                    <tr key={x.id} className="border-t" style={{ borderColor:'rgba(255,255,255,0.05)' }}>
-                      <td className="py-2.5 pr-3 text-[13px] font-semibold whitespace-nowrap sticky left-0" style={{ background:'inherit', color: i < 3 ? RANK_COLORS[i] : '#fff' }}>
+                    <tr key={x.id} className="border-t-2" style={{ borderColor:'rgba(255,255,255,0.25)' }}>
+                      <td className="py-5 pr-3 text-[18px] font-semibold whitespace-nowrap sticky left-0" style={{ background:'inherit', color: i < 3 ? RANK_COLORS[i] : '#fff' }}>
                         {x.e.nome}
                       </td>
                       {dias.map(dia => {
                         const val = tED[x.id]?.[dia] || 0
                         const isMax = val > 0 && val === maxPorDia[dia]
                         return (
-                          <td key={dia} className="py-2.5 px-2.5 text-right font-bebas text-[14px] whitespace-nowrap"
+                          <td key={dia} className="py-5 px-2.5 text-right font-bebas text-[20px] whitespace-nowrap"
                             style={{ color: isMax ? '#E8000D' : val > 0 ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.2)' }}>
                             {val > 0 ? Number(val).toLocaleString('pt-BR') : '—'}
                           </td>
                         )
                       })}
-                      <td className="py-2.5 pl-3 text-right font-bebas text-[15px] whitespace-nowrap" style={{ color: i < 3 ? RANK_COLORS[i] : '#fff' }}>
+                      <td className="py-5 pl-3 text-right font-bebas text-[22px] whitespace-nowrap" style={{ color: i < 3 ? RANK_COLORS[i] : '#fff' }}>
                         {fmt(x.val)}
                       </td>
                     </tr>
