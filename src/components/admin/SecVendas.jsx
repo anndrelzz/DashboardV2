@@ -3,8 +3,9 @@ import { sb } from '../../lib/supabase'
 import useStore from '../../store/useStore'
 import { getMes, fmt, getDiaFechamento } from '../../lib/utils'
 import { toast } from '../../lib/toast'
+import Modal from '../ui/Modal'
 import SectionHeader from './SectionHeader'
-import { IconVendas, IconHome, IconCar, IconWrench, IconTrash } from './icons'
+import { IconVendas, IconHome, IconCar, IconWrench, IconTrash, IconEdit } from './icons'
 
 const TIPOS = [
   { value:'Imovel',  label:'Imóvel',  Icon:IconHome,   color:'#E8000D' },
@@ -22,6 +23,14 @@ export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
   const [desc, setDesc]       = useState('')
   const [saving, setSaving]   = useState(false)
 
+  const [editando, setEditando]     = useState(null) // venda sendo editada
+  const [eVendId, setEVendId]       = useState('')
+  const [eValor, setEValor]         = useState('')
+  const [eData, setEData]           = useState('')
+  const [eTipo, setETipo]           = useState('')
+  const [eDesc, setEDesc]           = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
+
   const getVend = id => vendedores.find(x => x.id === id)
   const getEq   = id => equipes.find(x => x.id === id)
 
@@ -38,6 +47,33 @@ export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
     setValor(''); setDesc(''); setTipo('')
     await onRefresh()
     toast('Venda lançada!')
+  }
+
+  const abrirEdicao = (v) => {
+    setEditando(v)
+    setEVendId(v.vendedor_id)
+    setEValor(String(v.valor))
+    setEData(v.data || '')
+    setETipo(v.tipo === 'Servico' ? 'Serviço' : v.tipo)
+    setEDesc(v.descricao || '')
+  }
+
+  const salvarEdicao = async () => {
+    if (!eVendId) { toast('Selecione um vendedor', false); return }
+    const val = parseFloat(eValor)
+    if (!val || val <= 0) { toast('Informe um valor válido', false); return }
+    if (!eTipo) { toast('Selecione o tipo', false); return }
+    if (!eData) { toast('Informe a data', false); return }
+    setSavingEdit(true)
+    const mes = eData.substring(0, 7)
+    const { error } = await sb.from('vendas')
+      .update({ vendedor_id:eVendId, valor:val, data:eData, descricao:eDesc.trim(), tipo:eTipo, mes })
+      .eq('id', editando.id)
+    setSavingEdit(false)
+    if (error) { toast('Erro ao salvar edição', false); return }
+    setEditando(null)
+    await onRefresh()
+    toast('Venda atualizada!')
   }
 
   const remover = async (id) => {
@@ -150,11 +186,17 @@ export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
                   <td className="px-5 py-3.5 text-[13px] text-muted">{v.descricao || '—'}</td>
                   <td className="px-5 py-3.5 text-[13px] text-muted">{v.data || '—'}</td>
                   <td className="px-5 py-3.5">
-                    <button onClick={() => remover(v.id)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11px] font-bold tracking-wide border text-red border-red/20 hover:bg-red/10 transition-colors"
-                      style={{background:'rgba(239,68,68,0.06)'}}>
-                      <IconTrash size={12} />Excluir
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => abrirEdicao(v)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11px] font-bold tracking-wide border text-muted border-white/15 hover:text-white hover:border-white/30 transition-colors">
+                        <IconEdit size={12} />Editar
+                      </button>
+                      <button onClick={() => remover(v.id)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11px] font-bold tracking-wide border text-red border-red/20 hover:bg-red/10 transition-colors"
+                        style={{background:'rgba(239,68,68,0.06)'}}>
+                        <IconTrash size={12} />Excluir
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )
@@ -162,6 +204,54 @@ export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
           </tbody>
         </table>
       </div>
+
+      {/* Editar venda */}
+      <Modal open={!!editando} onClose={() => setEditando(null)} title="Editar Venda">
+        {editando && (
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Vendedor</label>
+                <select value={eVendId} onChange={e=>setEVendId(e.target.value)} className={inputCls} style={inputBg}>
+                  <option value="">Selecione...</option>
+                  {vendedores.map(v => <option key={v.id} value={v.id}>{v.nome}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Valor (R$)</label>
+                <input type="number" value={eValor} onChange={e=>setEValor(e.target.value)} min={0} step={0.01} className={inputCls} style={inputBg} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Data</label>
+                <input type="date" value={eData} onChange={e=>setEData(e.target.value)} className={inputCls} style={inputBg} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Tipo</label>
+                <select value={eTipo} onChange={e=>setETipo(e.target.value)} className={inputCls} style={inputBg}>
+                  <option value="">Selecione...</option>
+                  {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Descrição (opcional)</label>
+              <input type="text" value={eDesc} onChange={e=>setEDesc(e.target.value)} className={inputCls} style={inputBg} />
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button onClick={salvarEdicao} disabled={savingEdit}
+                className="px-6 py-2.5 rounded-lg font-cond font-bold text-[13px] tracking-[2px] uppercase text-white disabled:opacity-60"
+                style={{ background:'#E8000D' }}>
+                {savingEdit ? 'Salvando...' : 'Salvar Alterações'}
+              </button>
+              <button onClick={() => setEditando(null)}
+                className="px-6 py-2.5 rounded-lg font-cond font-bold text-[13px] tracking-[2px] uppercase border text-muted hover:text-white hover:border-white/25 transition-colors"
+                style={{ background:'#1F1F1F', borderColor:'rgba(255,255,255,0.1)' }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
