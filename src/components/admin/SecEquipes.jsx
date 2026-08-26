@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { sb } from '../../lib/supabase'
 import { fmt } from '../../lib/utils'
-import { toast } from '../ui/Toast'
+import { toast } from '../../lib/toast'
 import SectionHeader from './SectionHeader'
 import { IconEquipes, IconTrash } from './icons'
 

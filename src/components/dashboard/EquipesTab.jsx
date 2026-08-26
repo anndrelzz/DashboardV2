@@ -47,6 +47,9 @@ export default function EquipesTab({ equipes, vendedores, vendas, modoFechamento
   const rankColors = modoFechamento ? FIRE_RANK_COLORS : RANK_COLORS
   const rankGlow   = modoFechamento ? FIRE_RANK_GLOW   : RANK_GLOW
 
+  // Chave que só muda quando os valores realmente mudam, pra não recriar o gráfico a cada render
+  const sortedKey = JSON.stringify(sorted.map(x => ({ id: x.id, val: x.val })))
+
   useEffect(() => {
     if (!chartRef.current || !sorted.length) return
     const existing = Chart.getChart(chartRef.current)
@@ -117,7 +120,8 @@ export default function EquipesTab({ equipes, vendedores, vendas, modoFechamento
     })
 
     return () => { chartObj.current?.destroy(); chartObj.current = null }
-  }, [JSON.stringify(sorted.map(x => ({ id: x.id, val: x.val }))), modoFechamento])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedKey, modoFechamento])
 
   const cardStyle = modoFechamento ? {
     background: 'linear-gradient(160deg, #1a0d00 0%, #110800 100%)',

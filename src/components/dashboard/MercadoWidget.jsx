@@ -45,7 +45,9 @@ export default function MercadoWidget() {
           const b = ib.results[0]
           list.push({ nome:'IBOV', valor:Number(b.regularMarketPrice).toLocaleString('pt-BR',{maximumFractionDigits:0}), var:b.regularMarketChangePercent })
         }
-      } catch {}
+      } catch {
+        // IBOV indisponível: segue só com os outros índices
+      }
 
       list.push({ nome:'SELIC', valor:'14,00%', var:null })
       list.push({ nome:'CDI',   valor:'13,90%', var:null })
@@ -57,6 +59,8 @@ export default function MercadoWidget() {
   }
 
   useEffect(() => {
+    // Busca ao montar e depois a cada 15min — sem lib de fetching, então é direto assim
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregar()
     const iv = setInterval(carregar, 15 * 60 * 1000)
     return () => clearInterval(iv)

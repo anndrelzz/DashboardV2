@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react'
-
-let _show = null
-export const toast = (msg, ok = true) => _show?.({ msg, ok })
+import { setToastHandler } from '../../lib/toast'
 
 export default function Toast() {
   const [item, setItem] = useState(null)
 
   useEffect(() => {
-    _show = ({ msg, ok }) => {
+    setToastHandler(({ msg, ok }) => {
       setItem({ msg, ok })
       setTimeout(() => setItem(null), 3000)
-    }
-    return () => { _show = null }
+    })
+    return () => setToastHandler(null)
   }, [])
 
   if (!item) return null

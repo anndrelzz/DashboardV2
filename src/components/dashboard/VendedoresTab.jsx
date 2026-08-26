@@ -80,6 +80,9 @@ export default function VendedoresTab({ vendedores, vendas, modoFechamento }) {
   const totalGeral = sorted.reduce((a, x) => a + x.val, 0)
   const maxVal     = sorted[0]?.val || 1
 
+  // Chave que só muda quando os valores realmente mudam, pra não recriar o gráfico a cada render
+  const sortedKey = JSON.stringify(sorted.map(x => ({ id: x.id, val: x.val, vi: tVI[x.id]||0, vv: tVV[x.id]||0, vs: tVS[x.id]||0 })))
+
   useEffect(() => {
     if (!chartRef.current || !sorted.length) return
 
@@ -228,7 +231,8 @@ export default function VendedoresTab({ vendedores, vendas, modoFechamento }) {
     })
 
     return () => { chartObj.current?.destroy(); chartObj.current = null }
-  }, [JSON.stringify(sorted.map(x => ({ id: x.id, val: x.val, vi: tVI[x.id]||0, vv: tVV[x.id]||0, vs: tVS[x.id]||0 }))), modoFechamento])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedKey, modoFechamento])
 
   const cardStyle = {
     background: 'linear-gradient(160deg,#141414,#0f0f0f)',

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { sb } from '../../lib/supabase'
 import { fmt, NIVEIS, NIVEL_CORES, normalizarBusca } from '../../lib/utils'
-import { toast } from '../ui/Toast'
+import { toast } from '../../lib/toast'
 import Modal from '../ui/Modal'
 import SectionHeader from './SectionHeader'
 import { IconVendedores, IconUser, IconCamera, IconEdit, IconTrash, IconSearch } from './icons'

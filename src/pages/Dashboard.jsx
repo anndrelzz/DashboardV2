@@ -47,6 +47,7 @@ export default function Dashboard() {
       }
       setChecking(false)
     })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -69,9 +70,10 @@ export default function Dashboard() {
       .subscribe()
     const poll = setInterval(() => carregarDados(), 120_000)
     return () => { sb.removeChannel(ch); clearInterval(poll) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed])
 
-  const trocarMes = useCallback(async val => { setMes(val); await carregarDados(val) }, [])
+  const trocarMes = useCallback(async val => { setMes(val); await carregarDados(val) }, [setMes, carregarDados])
 
   // Filtro de vendas: no modo fechamento mostra só as vendas do dia do fechamento
   const diaFechamento  = getDiaFechamento(agora)

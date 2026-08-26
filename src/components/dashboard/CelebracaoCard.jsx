@@ -174,15 +174,18 @@ export default function CelebracaoCard({ venda, vendedor, equipe, meta, totalAtu
   }, [onClose])
 
   useEffect(() => {
-    timers.current.push(setTimeout(() => {
+    const meusTimers = timers.current
+    meusTimers.push(setTimeout(() => {
       const pct = meta > 0 ? Math.min(100, Math.round((totalAtual / meta) * 100)) : 0
       setBarWidth(pct)
     }, 300))
     const iv = setInterval(() => {
       setSecs(s => { if (s <= 1) { fechar(); return 0 } return s - 1 })
     }, 1000)
-    timers.current.push(iv)
-    return () => timers.current.forEach(t => { clearTimeout(t); clearInterval(t) })
+    meusTimers.push(iv)
+    return () => meusTimers.forEach(t => { clearTimeout(t); clearInterval(t) })
+    // Roda só ao montar o card: meta/totalAtual/fechar são fixos durante a vida do card
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const pct      = meta > 0 ? Math.min(100, Math.round((totalAtual / meta) * 100)) : 0

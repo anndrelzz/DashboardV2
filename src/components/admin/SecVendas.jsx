@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { sb } from '../../lib/supabase'
 import useStore from '../../store/useStore'
 import { getMes, fmt, getDiaFechamento } from '../../lib/utils'
-import { toast } from '../ui/Toast'
+import { toast } from '../../lib/toast'
 import SectionHeader from './SectionHeader'
 import { IconVendas, IconHome, IconCar, IconWrench, IconTrash } from './icons'
 
