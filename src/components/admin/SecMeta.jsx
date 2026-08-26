@@ -5,11 +5,14 @@ import { toast } from '../../lib/toast'
 import SectionHeader from './SectionHeader'
 import { IconMeta, IconFlame } from './icons'
 
-export default function SecMeta({ meta, metaFechamento, onRefresh }) {
+export default function SecMeta({ meta, metaFechamento, semanaFechamento, onRefresh }) {
   const [valorMes,       setValorMes]       = useState(meta           || '')
   const [valorFechamento, setValorFechamento] = useState(metaFechamento || '')
+  const [dataInicio,      setDataInicio]      = useState(semanaFechamento?.dataInicio || '')
+  const [dataFim,         setDataFim]         = useState(semanaFechamento?.dataFim    || '')
   const [savingMes,       setSavingMes]       = useState(false)
   const [savingFech,      setSavingFech]      = useState(false)
+  const [savingSemana,    setSavingSemana]    = useState(false)
 
   const salvarMes = async () => {
     const val = parseFloat(valorMes)
@@ -31,6 +34,18 @@ export default function SecMeta({ meta, metaFechamento, onRefresh }) {
     if (error) { toast('Erro ao salvar meta de fechamento', false); return }
     await onRefresh()
     toast('Meta de fechamento salva!')
+  }
+
+  const salvarSemana = async () => {
+    if (!dataInicio || !dataFim) { toast('Informe as duas datas', false); return }
+    if (dataInicio > dataFim) { toast('Data início deve ser antes da data fim', false); return }
+    setSavingSemana(true)
+    const { error } = await sb.from('semana_fechamento')
+      .upsert({ mes: getMes(), data_inicio: dataInicio, data_fim: dataFim }, { onConflict: 'mes' })
+    setSavingSemana(false)
+    if (error) { toast('Erro ao salvar semana do fechamento', false); return }
+    await onRefresh()
+    toast('Semana do fechamento salva!')
   }
 
   return (
@@ -105,6 +120,56 @@ export default function SecMeta({ meta, metaFechamento, onRefresh }) {
               className="self-start px-6 py-2.5 rounded-lg font-cond font-bold text-[13px] tracking-[2px] uppercase text-white transition-colors disabled:opacity-60"
               style={{ background:'#FF6600' }}>
               {savingFech ? 'Salvando...' : 'Salvar Meta de Fechamento'}
+            </button>
+          </div>
+        </div>
+
+        {/* Semana do Fechamento */}
+        <div className="rounded-2xl border overflow-hidden col-span-2" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.07)' }}>
+          <div className="px-6 py-4.5 border-b" style={{ borderColor:'rgba(255,255,255,0.07)' }}>
+            <span className="font-cond font-bold text-sm tracking-[2px] uppercase">Semana do Fechamento</span>
+          </div>
+          <div className="p-6 flex flex-col gap-5">
+            {semanaFechamento?.dataInicio && semanaFechamento?.dataFim && (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-lg border"
+                style={{ background:'rgba(232,0,13,0.06)', borderColor:'rgba(232,0,13,0.2)' }}>
+                <span className="text-sm text-muted">Período atual:</span>
+                <span className="font-bebas text-xl text-red">
+                  {semanaFechamento.dataInicio.slice(8,10)}/{semanaFechamento.dataInicio.slice(5,7)}
+                  {' '}até{' '}
+                  {semanaFechamento.dataFim.slice(8,10)}/{semanaFechamento.dataFim.slice(5,7)}
+                </span>
+              </div>
+            )}
+            <div className="flex gap-6">
+              <div className="flex flex-col gap-1.5 flex-1">
+                <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Data Início</label>
+                <input
+                  type="date"
+                  value={dataInicio}
+                  onChange={e => setDataInicio(e.target.value)}
+                  className="rounded-lg px-4 py-3 text-white text-sm outline-none border border-white/10 focus:border-red/40 transition-colors"
+                  style={{ background:'#1F1F1F' }}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5 flex-1">
+                <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Data Fim</label>
+                <input
+                  type="date"
+                  value={dataFim}
+                  onChange={e => setDataFim(e.target.value)}
+                  className="rounded-lg px-4 py-3 text-white text-sm outline-none border border-white/10 focus:border-red/40 transition-colors"
+                  style={{ background:'#1F1F1F' }}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted">
+              Define o período mostrado na aba "Semana do Fechamento" do dashboard — normalmente os últimos dias do mês.
+            </p>
+            <button onClick={salvarSemana} disabled={savingSemana}
+              className="self-start px-6 py-2.5 rounded-lg font-cond font-bold text-[13px] tracking-[2px] uppercase text-white transition-colors disabled:opacity-60"
+              style={{ background:'#E8000D' }}>
+              {savingSemana ? 'Salvando...' : 'Salvar Semana do Fechamento'}
             </button>
           </div>
         </div>

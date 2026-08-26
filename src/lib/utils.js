@@ -56,6 +56,21 @@ export const getDiaFechamento = (agora = new Date()) => {
 export const normalizarBusca = (s) =>
   (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
+// Lista de datas YYYY-MM-DD entre início e fim, inclusive
+export const diasEntre = (inicio, fim) => {
+  const dias = []
+  const cur = new Date(inicio + 'T12:00:00')
+  const end = new Date(fim + 'T12:00:00')
+  while (cur <= end) {
+    dias.push(toISODateLocal(cur))
+    cur.setDate(cur.getDate() + 1)
+  }
+  return dias
+}
+
+// 'YYYY-MM-DD' -> 'DD/MM'
+export const fmtDiaMes = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
+
 // Compara o valor informado pelo vendedor com o total já lançado no dashboard.
 // margem evita falso "diverge" por erro de arredondamento de ponto flutuante.
 export const compararConferencia = (dashboard, bruto, margem = 0.005) => {

@@ -18,7 +18,7 @@ export default function Admin() {
   const [checking, setChecking] = useState(true)
   const [section, setSection]   = useState('resumo')
 
-  const { meta, metaFechamento, vendedores, equipes, vendas, carregarDados } = useStore()
+  const { meta, metaFechamento, semanaFechamento, vendedores, equipes, vendas, carregarDados } = useStore()
 
   useEffect(() => {
     ;(async () => {
@@ -54,7 +54,7 @@ export default function Admin() {
       <div className="flex-1 overflow-auto">
         {section === 'resumo'      && <SecResumo {...secProps} />}
         {section === 'performance' && <SecPerformance {...secProps} />}
-        {section === 'meta'        && <SecMeta meta={meta} metaFechamento={metaFechamento} onRefresh={refresh} />}
+        {section === 'meta'        && <SecMeta meta={meta} metaFechamento={metaFechamento} semanaFechamento={semanaFechamento} onRefresh={refresh} />}
         {section === 'vendas'      && <SecVendas {...secProps} />}
         {section === 'vendedores'  && <SecVendedores {...secProps} />}
         {section === 'equipes'     && <SecEquipes {...secProps} />}

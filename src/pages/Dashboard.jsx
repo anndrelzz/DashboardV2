@@ -6,8 +6,18 @@ import LoginScreen from '../components/dashboard/LoginScreen'
 import Navbar from '../components/dashboard/Navbar'
 import VendedoresTab from '../components/dashboard/VendedoresTab'
 import EquipesTab from '../components/dashboard/EquipesTab'
+import EquipesSemanaTab from '../components/dashboard/EquipesSemanaTab'
 import CelebracaoCard from '../components/dashboard/CelebracaoCard'
+import KeepAwake from '../components/dashboard/KeepAwake'
 import { getDiaFechamento } from '../lib/utils'
+
+const TABS = [
+  { id:'vendedores', label:'Vendedores' },
+  { id:'equipes',    label:'Equipes' },
+  { id:'semana',     label:'Semana do Fechamento' },
+]
+
+const ROTACAO_MS = 2 * 60 * 1000
 
 function Spinner() {
   return (
@@ -18,7 +28,7 @@ function Spinner() {
 
 export default function Dashboard() {
   const {
-    meta, metaFechamento,
+    meta, metaFechamento, semanaFechamento,
     vendedores, equipes, vendas,
     mes, loading,
     modoFechamento, setModoFechamento,
@@ -67,6 +77,7 @@ export default function Dashboard() {
       .on('postgres_changes', { event:'*',      schema:'public', table:'metas' },      async () => carregarDados())
       .on('postgres_changes', { event:'*',      schema:'public', table:'vendedores' }, async () => carregarDados())
       .on('postgres_changes', { event:'*',      schema:'public', table:'equipes' },    async () => carregarDados())
+      .on('postgres_changes', { event:'*',      schema:'public', table:'semana_fechamento' }, async () => carregarDados())
       .subscribe()
     const poll = setInterval(() => carregarDados(), 120_000)
     return () => { sb.removeChannel(ch); clearInterval(poll) }
@@ -74,6 +85,20 @@ export default function Dashboard() {
   }, [authed])
 
   const trocarMes = useCallback(async val => { setMes(val); await carregarDados(val) }, [setMes, carregarDados])
+
+  // Alterna as abas sozinho, pra manter a tela em movimento (TV não pode dormir)
+  const semanaConfigurada = !!(semanaFechamento?.dataInicio && semanaFechamento?.dataFim)
+  useEffect(() => {
+    if (!authed) return
+    const rotacao = semanaConfigurada ? TABS.map(t => t.id) : TABS.filter(t => t.id !== 'semana').map(t => t.id)
+    const iv = setInterval(() => {
+      setTab(prev => {
+        const idx = rotacao.indexOf(prev)
+        return rotacao[(idx + 1) % rotacao.length]
+      })
+    }, ROTACAO_MS)
+    return () => clearInterval(iv)
+  }, [authed, semanaConfigurada])
 
   // Filtro de vendas: no modo fechamento mostra só as vendas do dia do fechamento
   const diaFechamento  = getDiaFechamento(agora)
@@ -118,6 +143,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background:'#080808' }}>
+      <KeepAwake />
       <Navbar
         meta={meta}
         totalVendas={totalVendas}
@@ -130,10 +156,7 @@ export default function Dashboard() {
       {/* Tab bar */}
       <div className="flex-shrink-0 flex items-end px-6 gap-1 relative"
         style={{ background:'#0a0a0a', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-        {[
-          { id:'vendedores', label:'Vendedores' },
-          { id:'equipes',    label:'Equipes' },
-        ].map(t => (
+        {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className="relative font-cond font-bold text-sm tracking-[2.5px] uppercase py-3.5 px-7 transition-all"
             style={{ color: tab === t.id ? '#fff' : 'rgba(255,255,255,0.35)' }}
@@ -234,13 +257,15 @@ export default function Dashboard() {
       )}
 
       {/* Conteúdo das tabs */}
-      <main className="flex-1 overflow-hidden p-5">
-        <AnimatePresence mode="wait">
-          <motion.div key={tab} className="h-full"
-            initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-8 }}
-            transition={{ duration:0.25, ease:'easeOut' }}>
+      <main className="flex-1 overflow-hidden relative">
+        <AnimatePresence>
+          <motion.div key={tab} className="h-full absolute inset-0 p-5"
+            style={{ background:'#080808' }}
+            initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+            transition={{ duration:0.5, ease:'easeInOut' }}>
             {tab === 'vendedores' && <VendedoresTab vendedores={vendedores} vendas={vendasVisiveis} equipes={equipes} modoFechamento={modoFechamento} />}
             {tab === 'equipes'    && <EquipesTab equipes={equipes} vendedores={vendedores} vendas={vendasVisiveis} modoFechamento={modoFechamento} />}
+            {tab === 'semana'     && <EquipesSemanaTab equipes={equipes} vendedores={vendedores} vendas={vendas} semanaFechamento={semanaFechamento} />}
           </motion.div>
         </AnimatePresence>
       </main>
