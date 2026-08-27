@@ -62,6 +62,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!authed) return
+    let jaConectouUmaVez = false
     const ch = sb.channel('realtime-dash-v2')
       .on('postgres_changes', { event:'INSERT', schema:'public', table:'vendas' }, async (payload) => {
         await carregarDados()
@@ -78,8 +79,18 @@ export default function Dashboard() {
       .on('postgres_changes', { event:'*',      schema:'public', table:'vendedores' }, async () => carregarDados())
       .on('postgres_changes', { event:'*',      schema:'public', table:'equipes' },    async () => carregarDados())
       .on('postgres_changes', { event:'*',      schema:'public', table:'semana_fechamento' }, async () => carregarDados())
-      .subscribe()
-    const poll = setInterval(() => carregarDados(), 120_000)
+      .subscribe((status) => {
+        // Só busca dados de novo quando a conexão ao vivo (re)conecta — cobre
+        // o caso de ter perdido eventos enquanto estava caída. Sem isso não
+        // precisa ficar perguntando pro banco "mudou algo?" toda hora.
+        if (status === 'SUBSCRIBED' && jaConectouUmaVez) carregarDados()
+        if (status === 'SUBSCRIBED') jaConectouUmaVez = true
+      })
+    // Rede de segurança bem espaçada, só pro caso raríssimo da conexão ficar
+    // "presa" sem cair de vez (sem disparar erro) e sem receber eventos —
+    // não é o mecanismo principal de atualização, é só uma garantia extra
+    // pra não pesar no Disk IO Budget do plano Free do Supabase
+    const poll = setInterval(() => carregarDados(), 60 * 60_000)
     return () => { sb.removeChannel(ch); clearInterval(poll) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed])
