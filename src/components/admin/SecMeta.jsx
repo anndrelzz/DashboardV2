@@ -30,7 +30,9 @@ export default function SecMeta({ meta, metaFechamento, semanaFechamento, onRefr
     const val = parseFloat(valorFechamento)
     if (!val || val <= 0) { toast('Informe um valor válido', false); return }
     setSavingFech(true)
-    const { error } = await sb.from('meta_fechamento').update({ valor: val }).eq('id', 1)
+    // upsert e não update: a linha id=1 pode não existir, e nesse caso o update
+    // afeta 0 linhas sem devolver erro — dava "salvo!" sem ter gravado nada
+    const { error } = await sb.from('meta_fechamento').upsert({ id: 1, valor: val }, { onConflict: 'id' })
     setSavingFech(false)
     if (error) { toast(`Erro ao salvar meta de fechamento: ${error.message}`, false); return }
     await onRefresh()

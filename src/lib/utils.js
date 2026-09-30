@@ -82,6 +82,11 @@ export const compararConferencia = (dashboard, bruto, margem = 0.005) => {
   return { temInformado: true, valorInformado, diff, bate: Math.abs(diff) < margem }
 }
 
+// Vendas de um único dia (YYYY-MM-DD). Ignora a parte de hora, caso v.data
+// venha como timestamp.
+export const filtrarVendasDoDia = (vendas, dia) =>
+  (vendas || []).filter(v => String(v.data).slice(0, 10) === dia)
+
 // Vendas dentro do período da Semana do Fechamento (datas YYYY-MM-DD, inclusive).
 // Compara como string porque v.data já vem no formato ISO do banco.
 export const filtrarVendasSemana = (vendas, dataInicio, dataFim) => {

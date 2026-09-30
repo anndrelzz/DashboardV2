@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { toISODateLocal, getDiaFechamento, getMes, normalizarBusca, compararConferencia, fmt, diasEntre, fmtDiaMes, filtrarVendasSemana, pctMeta } from './utils'
+import { toISODateLocal, getDiaFechamento, getMes, normalizarBusca, compararConferencia, fmt, diasEntre, fmtDiaMes, filtrarVendasSemana, filtrarVendasDoDia, pctMeta } from './utils'
 
 describe('toISODateLocal', () => {
   it('formata com zero à esquerda', () => {
@@ -167,5 +167,26 @@ describe('pctMeta', () => {
   it('sem meta definida não divide por zero', () => {
     expect(pctMeta(5000, 0)).toEqual({ pct: 0, pctBarra: 0 })
     expect(pctMeta(5000, null)).toEqual({ pct: 0, pctBarra: 0 })
+  })
+})
+
+describe('filtrarVendasDoDia', () => {
+  const vendas = [
+    { data: '2026-09-29', valor: 100 },
+    { data: '2026-09-30', valor: 200 },
+    { data: '2026-09-30T22:15:00', valor: 300 },
+  ]
+
+  it('pega só as vendas do dia pedido', () => {
+    expect(filtrarVendasDoDia(vendas, '2026-09-29').map(v => v.valor)).toEqual([100])
+  })
+
+  it('ignora a hora quando a data vem como timestamp', () => {
+    expect(filtrarVendasDoDia(vendas, '2026-09-30').map(v => v.valor)).toEqual([200, 300])
+  })
+
+  it('dia sem venda devolve vazio, sem quebrar com lista indefinida', () => {
+    expect(filtrarVendasDoDia(vendas, '2026-09-28')).toEqual([])
+    expect(filtrarVendasDoDia(undefined, '2026-09-30')).toEqual([])
   })
 })

@@ -9,7 +9,7 @@ import EquipesTab from '../components/dashboard/EquipesTab'
 import EquipesSemanaTab from '../components/dashboard/EquipesSemanaTab'
 import CelebracaoCard from '../components/dashboard/CelebracaoCard'
 import KeepAwake from '../components/dashboard/KeepAwake'
-import { getDiaFechamento } from '../lib/utils'
+import { getDiaFechamento, filtrarVendasDoDia } from '../lib/utils'
 
 const TABS = [
   { id:'vendedores', label:'Vendedores' },
@@ -70,12 +70,19 @@ export default function Dashboard() {
         const novaVenda = payload.new
         const vend = st.vendedores.find(x => x.id === novaVenda.vendedor_id)
         const eq   = vend ? st.equipes.find(e => e.id === vend.equipe_id) : null
-        const totalAtual = st.vendas.reduce((a, b) => a + Number(b.valor), 0)
+        // O card compara com metaAtiva, que no modo Fechamento é a meta do DIA —
+        // então o total tem que ser o do dia também, senão a barra vive em 100%.
+        // Recalcula o dia aqui porque o closure do canal é criado uma vez só.
+        const vendasDoTotal = st.modoFechamento
+          ? filtrarVendasDoDia(st.vendas, getDiaFechamento())
+          : st.vendas
+        const totalAtual = vendasDoTotal.reduce((a, b) => a + Number(b.valor), 0)
         setCelebracao({ venda: novaVenda, vendedor: vend, equipe: eq, totalAtual })
       })
       .on('postgres_changes', { event:'UPDATE', schema:'public', table:'vendas' },     async () => carregarDados())
       .on('postgres_changes', { event:'DELETE', schema:'public', table:'vendas' },     async () => carregarDados())
       .on('postgres_changes', { event:'*',      schema:'public', table:'metas' },      async () => carregarDados())
+      .on('postgres_changes', { event:'*',      schema:'public', table:'meta_fechamento' }, async () => carregarDados())
       .on('postgres_changes', { event:'*',      schema:'public', table:'vendedores' }, async () => carregarDados())
       .on('postgres_changes', { event:'*',      schema:'public', table:'equipes' },    async () => carregarDados())
       .on('postgres_changes', { event:'*',      schema:'public', table:'semana_fechamento' }, async () => carregarDados())
@@ -114,7 +121,7 @@ export default function Dashboard() {
   // Filtro de vendas: no modo fechamento mostra só as vendas do dia do fechamento
   const diaFechamento  = getDiaFechamento(agora)
   const vendasVisiveis = modoFechamento
-    ? vendas.filter(v => String(v.data).slice(0, 10) === diaFechamento)
+    ? filtrarVendasDoDia(vendas, diaFechamento)
     : vendas
 
   // Depois da meia-noite o dia do fechamento pode cair no mês anterior:
