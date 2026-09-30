@@ -55,7 +55,7 @@ export default function Admin() {
       <div className="flex-1 overflow-auto">
         {section === 'resumo'      && <SecResumo {...secProps} />}
         {section === 'performance' && <SecPerformance {...secProps} />}
-        {section === 'meta'        && <SecMeta meta={meta} metaFechamento={metaFechamento} semanaFechamento={semanaFechamento} onRefresh={refresh} />}
+        {section === 'meta'        && <SecMeta metaFechamento={metaFechamento} onRefresh={refresh} />}
         {section === 'vendas'      && <SecVendas {...secProps} />}
         {section === 'vendedores'  && <SecVendedores {...secProps} />}
         {section === 'equipes'     && <SecEquipes {...secProps} />}
