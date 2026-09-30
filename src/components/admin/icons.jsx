@@ -87,3 +87,7 @@ export const IconX = (p) => (
 export const IconFlame = (p) => (
   <Icon {...p}><path d="M12 21c4 0 6.5-2.6 6.5-6 0-3-2-4.8-2.9-7.2-.4 1.6-1.4 2.6-2.3 2.6.4-2.3-.3-4.7-2.3-6.4-.3 3.2-1.9 4.6-3.6 6.6C5.9 12.4 5.5 14 5.5 15c0 3.4 2.5 6 6.5 6Z"/></Icon>
 )
+
+export const IconTrophy = (p) => (
+  <Icon {...p}><path d="M7 4h10v5a5 5 0 0 1-10 0Z"/><path d="M7 6H4.5v1.5A3.5 3.5 0 0 0 8 11"/><path d="M17 6h2.5v1.5A3.5 3.5 0 0 1 16 11"/><path d="M12 14v3.5"/><path d="M8.5 20.5h7"/><path d="M10 17.5h4l.7 3h-5.4Z"/></Icon>
+)

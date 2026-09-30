@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { sb } from '../../lib/supabase'
-import { IconResumo, IconPerformance, IconMeta, IconVendas, IconVendedores, IconEquipes, IconScale, IconLogout, IconArrowLeft } from './icons'
+import { IconResumo, IconPerformance, IconMeta, IconVendas, IconVendedores, IconEquipes, IconScale, IconTrophy, IconLogout, IconArrowLeft } from './icons'
 
 const LOGO = (
   <svg height="26" viewBox="0 0 1606 1126" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -11,7 +11,8 @@ const LOGO = (
 const NAV = [
   { id:'resumo',      icon:IconResumo,      label:'Resumo' },
   { id:'performance', icon:IconPerformance, label:'Desempenho Equipes' },
-  { id:'meta',        icon:IconMeta,        label:'Meta do Mês' },
+  { id:'meta',        icon:IconMeta,        label:'Metas' },
+  { id:'semana',      icon:IconTrophy,      label:'Ranking da Semana' },
   { id:'vendas',      icon:IconVendas,      label:'Lançar Venda' },
   { id:'vendedores',  icon:IconVendedores,  label:'Vendedores' },
   { id:'equipes',     icon:IconEquipes,     label:'Equipes' },

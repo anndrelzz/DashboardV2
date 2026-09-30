@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { toISODateLocal, getDiaFechamento, getMes, normalizarBusca, compararConferencia, fmt } from './utils'
+import { toISODateLocal, getDiaFechamento, getMes, normalizarBusca, compararConferencia, fmt, diasEntre, fmtDiaMes, filtrarVendasSemana, pctMeta } from './utils'
 
 describe('toISODateLocal', () => {
   it('formata com zero à esquerda', () => {
@@ -103,5 +103,69 @@ describe('fmt', () => {
   it('formata em reais sem casas decimais', () => {
     expect(fmt(1000)).toBe('R$ 1.000')
     expect(fmt(0)).toBe('R$ 0')
+  })
+})
+
+describe('diasEntre', () => {
+  it('inclui as duas pontas do período', () => {
+    expect(diasEntre('2026-09-28', '2026-09-30')).toEqual(['2026-09-28', '2026-09-29', '2026-09-30'])
+  })
+
+  it('um único dia devolve esse dia', () => {
+    expect(diasEntre('2026-09-30', '2026-09-30')).toEqual(['2026-09-30'])
+  })
+
+  it('atravessa a virada de mês sem pular dia (usa hora local, não UTC)', () => {
+    expect(diasEntre('2026-09-29', '2026-10-02')).toEqual(['2026-09-29', '2026-09-30', '2026-10-01', '2026-10-02'])
+  })
+
+  it('período invertido devolve vazio em vez de laço infinito', () => {
+    expect(diasEntre('2026-09-30', '2026-09-28')).toEqual([])
+  })
+})
+
+describe('fmtDiaMes', () => {
+  it('converte ISO para DD/MM', () => {
+    expect(fmtDiaMes('2026-09-28')).toBe('28/09')
+    expect(fmtDiaMes('2026-01-05')).toBe('05/01')
+  })
+})
+
+describe('filtrarVendasSemana', () => {
+  const vendas = [
+    { data: '2026-09-27', valor: 100 },
+    { data: '2026-09-28', valor: 200 },
+    { data: '2026-09-30', valor: 300 },
+    { data: '2026-10-01', valor: 400 },
+  ]
+
+  it('pega só o que está dentro do período, incluindo as pontas', () => {
+    const r = filtrarVendasSemana(vendas, '2026-09-28', '2026-09-30')
+    expect(r.map(v => v.valor)).toEqual([200, 300])
+  })
+
+  it('ignora a parte de hora quando a data vem como timestamp', () => {
+    const r = filtrarVendasSemana([{ data: '2026-09-30T23:40:00', valor: 50 }], '2026-09-28', '2026-09-30')
+    expect(r).toHaveLength(1)
+  })
+
+  it('sem período configurado devolve vazio', () => {
+    expect(filtrarVendasSemana(vendas, null, null)).toEqual([])
+    expect(filtrarVendasSemana(undefined, '2026-09-28', '2026-09-30')).toEqual([])
+  })
+})
+
+describe('pctMeta', () => {
+  it('calcula o percentual batido', () => {
+    expect(pctMeta(4500000, 9000000)).toEqual({ pct: 50, pctBarra: 50 })
+  })
+
+  it('deixa o texto passar de 100% mas trava a barra em 100', () => {
+    expect(pctMeta(18000000, 9000000)).toEqual({ pct: 200, pctBarra: 100 })
+  })
+
+  it('sem meta definida não divide por zero', () => {
+    expect(pctMeta(5000, 0)).toEqual({ pct: 0, pctBarra: 0 })
+    expect(pctMeta(5000, null)).toEqual({ pct: 0, pctBarra: 0 })
   })
 })

@@ -81,3 +81,21 @@ export const compararConferencia = (dashboard, bruto, margem = 0.005) => {
   const diff = valorInformado - dashboard
   return { temInformado: true, valorInformado, diff, bate: Math.abs(diff) < margem }
 }
+
+// Vendas dentro do período da Semana do Fechamento (datas YYYY-MM-DD, inclusive).
+// Compara como string porque v.data já vem no formato ISO do banco.
+export const filtrarVendasSemana = (vendas, dataInicio, dataFim) => {
+  if (!dataInicio || !dataFim) return []
+  return (vendas || []).filter(v => {
+    const d = String(v.data).slice(0, 10)
+    return d >= dataInicio && d <= dataFim
+  })
+}
+
+// Percentual da meta batida. Devolve o valor real (pode passar de 100) e a
+// versão limitada em 100 pra largura da barra de progresso não estourar.
+export const pctMeta = (total, meta) => {
+  if (!meta || meta <= 0) return { pct: 0, pctBarra: 0 }
+  const pct = Math.round((total / meta) * 100)
+  return { pct, pctBarra: Math.min(100, pct) }
+}

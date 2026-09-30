@@ -1,52 +1,65 @@
+import { useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { fmt, fmtDiaMes, diasEntre, MEDALS } from '../../lib/utils'
+import { fmt, fmtDiaMes, diasEntre, filtrarVendasSemana, pctMeta, MEDALS } from '../../lib/utils'
 
 const RANK_COLORS = ['#FFB800', '#C0C0C0', '#CD7F32']
 const RANK_GLOW   = ['rgba(255,184,0,0.2)', 'rgba(192,192,192,0.12)', 'rgba(205,127,50,0.18)']
 
 export default function EquipesSemanaTab({ equipes, vendedores, vendas, semanaFechamento }) {
-  const { dataInicio, dataFim } = semanaFechamento || {}
+  const { dataInicio, dataFim, meta: metaSemana = 0 } = semanaFechamento || {}
+
+  // Recalcula só quando os dados mudam — o Dashboard re-renderiza de minuto em
+  // minuto por causa do relógio e não precisa refazer a agregação toda vez.
+  const { dias, sorted, totalGeral, maxVal, maxPorDia } = useMemo(() => {
+    if (!dataInicio || !dataFim) return { dias: [], sorted: [], totalGeral: 0, maxVal: 1, maxPorDia: {} }
+    const dias = diasEntre(dataInicio, dataFim)
+    const vendasSemana = filtrarVendasSemana(vendas, dataInicio, dataFim)
+    const equipePorVendedor = new Map(vendedores.map(v => [v.id, v.equipe_id]))
+
+    // tE: total da equipe na semana. tED: total da equipe por dia.
+    const tE = {}, tED = {}
+    vendasSemana.forEach(v => {
+      const equipeId = equipePorVendedor.get(v.vendedor_id)
+      if (!equipeId) return
+      const dia = String(v.data).slice(0, 10)
+      tE[equipeId]  = (tE[equipeId]  || 0) + Number(v.valor)
+      tED[equipeId] = tED[equipeId] || {}
+      tED[equipeId][dia] = (tED[equipeId][dia] || 0) + Number(v.valor)
+    })
+
+    const sorted = equipes
+      .map(e => ({ id: e.id, val: tE[e.id] || 0, e, porDia: tED[e.id] || {} }))
+      .sort((a, b) => b.val - a.val)
+
+    // Maior valor de cada coluna-dia, pra destacar
+    const maxPorDia = {}
+    dias.forEach(dia => {
+      maxPorDia[dia] = Math.max(0, ...sorted.map(x => x.porDia[dia] || 0))
+    })
+
+    return {
+      dias,
+      sorted,
+      totalGeral: sorted.reduce((a, x) => a + x.val, 0),
+      maxVal:     sorted[0]?.val || 1,
+      maxPorDia,
+    }
+  }, [equipes, vendedores, vendas, dataInicio, dataFim])
+
+  const { pct, pctBarra } = pctMeta(totalGeral, metaSemana)
+  const bateuMeta = metaSemana > 0 && totalGeral >= metaSemana
+  const falta     = Math.max(0, metaSemana - totalGeral)
 
   if (!dataInicio || !dataFim) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center text-muted">
           <p className="font-bebas text-2xl tracking-[2px] mb-2">Semana do Fechamento não configurada</p>
-          <p className="text-sm">Defina a data início e fim no painel admin, em Meta do Mês.</p>
+          <p className="text-sm">Defina a data início e fim no painel admin, em Metas.</p>
         </div>
       </div>
     )
   }
-
-  const dias = diasEntre(dataInicio, dataFim)
-  const vendasSemana = vendas.filter(v => {
-    const d = String(v.data).slice(0, 10)
-    return d >= dataInicio && d <= dataFim
-  })
-
-  // tE: total da equipe na semana. tED: total da equipe por dia.
-  const tE = {}, tED = {}
-  vendasSemana.forEach(v => {
-    const vend = vendedores.find(x => x.id === v.vendedor_id)
-    if (!vend?.equipe_id) return
-    const dia = String(v.data).slice(0, 10)
-    tE[vend.equipe_id]  = (tE[vend.equipe_id]  || 0) + Number(v.valor)
-    tED[vend.equipe_id] = tED[vend.equipe_id] || {}
-    tED[vend.equipe_id][dia] = (tED[vend.equipe_id][dia] || 0) + Number(v.valor)
-  })
-
-  const sorted = equipes
-    .map(e => ({ id: e.id, val: tE[e.id] || 0, e }))
-    .sort((a, b) => b.val - a.val)
-
-  const totalGeral = sorted.reduce((a, x) => a + x.val, 0)
-  const maxVal     = sorted[0]?.val || 1
-
-  // Maior valor de cada coluna-dia, pra destacar
-  const maxPorDia = {}
-  dias.forEach(dia => {
-    maxPorDia[dia] = Math.max(0, ...sorted.map(x => tED[x.id]?.[dia] || 0))
-  })
 
   const cardStyle = {
     background: 'linear-gradient(160deg, #141414 0%, #0f0f0f 100%)',
@@ -57,12 +70,57 @@ export default function EquipesSemanaTab({ equipes, vendedores, vendas, semanaFe
 
   return (
     <div className="flex flex-col gap-4 h-full">
-      <div className="flex items-center justify-between flex-shrink-0">
-        <span className="font-bebas text-2xl tracking-[3px] uppercase text-white">Unidade Joinville-América</span>
-        <div className="flex flex-col items-end">
-          <span className="text-[9px] text-muted tracking-[1.5px] uppercase">Total do Período</span>
-          <span className="font-bebas text-2xl leading-none" style={{ color: '#E8000D' }}>{fmt(totalGeral)}</span>
-        </div>
+      <div className="flex items-center justify-between gap-6 flex-shrink-0">
+        <span className="font-bebas text-2xl tracking-[3px] uppercase text-white flex-shrink-0">Unidade Joinville-América</span>
+
+        {metaSemana > 0 ? (
+          <div className="flex items-center gap-5 px-5 py-2.5 rounded-xl border flex-1 max-w-[820px]"
+            style={{
+              background: bateuMeta ? 'rgba(34,197,94,0.07)' : 'rgba(232,0,13,0.06)',
+              borderColor: bateuMeta ? 'rgba(34,197,94,0.3)' : 'rgba(232,0,13,0.2)',
+            }}>
+            <div className="flex flex-col leading-none gap-1.5 flex-shrink-0">
+              <span className="text-[9px] text-muted tracking-[1.5px] uppercase">Meta da Semana</span>
+              <span className="font-bebas text-xl leading-none" style={{ color: bateuMeta ? '#22C55E' : '#E8000D' }}>
+                {fmt(metaSemana)}
+              </span>
+            </div>
+
+            <div className="w-px self-stretch" style={{ background: 'rgba(255,255,255,0.1)' }} />
+
+            <div className="flex-1 min-w-0 flex flex-col gap-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="font-bebas text-[26px] leading-none" style={{ color: bateuMeta ? '#22C55E' : '#E8000D' }}>
+                  {fmt(totalGeral)}
+                </span>
+                <span className="text-[10px] tracking-[1px] uppercase" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  {bateuMeta ? 'Meta batida! 🔥' : `Faltam ${fmt(falta)}`}
+                </span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.09)' }}>
+                <motion.div className="h-full rounded-full"
+                  style={{
+                    background: bateuMeta
+                      ? 'linear-gradient(90deg,#15803D,#22C55E,#4ADE80)'
+                      : 'linear-gradient(90deg,#9B0009,#E8000D,#FF4444)',
+                    boxShadow: bateuMeta ? '0 0 10px rgba(34,197,94,0.5)' : '0 0 10px rgba(232,0,13,0.5)',
+                  }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${pctBarra}%` }}
+                  transition={{ duration: 1.2, ease: 'easeOut' }} />
+              </div>
+            </div>
+
+            <span className="font-bebas leading-none flex-shrink-0" style={{ fontSize: 44, color: bateuMeta ? '#22C55E' : '#E8000D' }}>
+              {pct}%
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-col items-end">
+            <span className="text-[9px] text-muted tracking-[1.5px] uppercase">Total do Período</span>
+            <span className="font-bebas text-2xl leading-none" style={{ color: '#E8000D' }}>{fmt(totalGeral)}</span>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-5 flex-1 min-h-0" style={{ gridTemplateColumns: '300px 1fr' }}>
@@ -81,7 +139,7 @@ export default function EquipesSemanaTab({ equipes, vendedores, vendas, semanaFe
             {sorted.length === 0 ? (
               <div className="flex-1 flex items-center justify-center text-muted text-sm">Sem dados ainda</div>
             ) : sorted.slice(0, 5).map((x, i) => {
-              const pct   = (x.val / maxVal) * 100
+              const largura = (x.val / maxVal) * 100
               const color = RANK_COLORS[i] || 'rgba(255,255,255,0.7)'
               const glow  = RANK_GLOW[i]   || 'rgba(255,255,255,0.05)'
               const isTop = i < 3
@@ -109,7 +167,7 @@ export default function EquipesSemanaTab({ equipes, vendedores, vendas, semanaFe
                     <div className="h-1.5 rounded-full overflow-hidden" style={{ background:'rgba(255,255,255,0.25)' }}>
                       <motion.div className="h-full rounded-full"
                         style={{ background: isTop ? color : 'rgba(232,0,13,0.6)' }}
-                        initial={{ width:0 }} animate={{ width:`${pct}%` }}
+                        initial={{ width:0 }} animate={{ width:`${largura}%` }}
                         transition={{ delay: i*0.08+0.3, duration:0.8, ease:'easeOut' }} />
                     </div>
                   </div>
@@ -156,7 +214,7 @@ export default function EquipesSemanaTab({ equipes, vendedores, vendas, semanaFe
                         {x.e.nome}
                       </td>
                       {dias.map(dia => {
-                        const val = tED[x.id]?.[dia] || 0
+                        const val = x.porDia[dia] || 0
                         const isMax = val > 0 && val === maxPorDia[dia]
                         return (
                           <td key={dia} className="py-5 px-2.5 text-right font-bebas text-[20px] whitespace-nowrap"

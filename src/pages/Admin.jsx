@@ -10,6 +10,7 @@ import SecVendas from '../components/admin/SecVendas'
 import SecVendedores from '../components/admin/SecVendedores'
 import SecEquipes from '../components/admin/SecEquipes'
 import SecConferencia from '../components/admin/SecConferencia'
+import SecRankingSemana from '../components/admin/SecRankingSemana'
 import Toast from '../components/ui/Toast'
 import Spinner from '../components/ui/Spinner'
 
@@ -59,6 +60,7 @@ export default function Admin() {
         {section === 'vendedores'  && <SecVendedores {...secProps} />}
         {section === 'equipes'     && <SecEquipes {...secProps} />}
         {section === 'conferencia' && <SecConferencia {...secProps} />}
+        {section === 'semana'      && <SecRankingSemana {...secProps} semanaFechamento={semanaFechamento} />}
       </div>
 
       <Toast />

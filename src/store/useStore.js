@@ -11,7 +11,7 @@ const useStore = create((set, get) => ({
   mes:            getMes(),
   loading:        false,
   modoFechamento: false,
-  semanaFechamento: { dataInicio: null, dataFim: null },
+  semanaFechamento: { dataInicio: null, dataFim: null, meta: 0 },
 
   setMes:            (mes) => set({ mes }),
   setModoFechamento: (v)   => set({ modoFechamento: v }),
@@ -37,6 +37,7 @@ const useStore = create((set, get) => ({
         semanaFechamento: {
           dataInicio: r6.data?.data_inicio || null,
           dataFim:    r6.data?.data_fim    || null,
+          meta:       r6.data?.meta        || 0,
         },
         mes,
       })
