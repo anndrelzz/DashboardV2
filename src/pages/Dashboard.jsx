@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { sb } from '../lib/supabase'
-import useStore from '../store/useStore'
+import useStore, { limparCache } from '../store/useStore'
 import LoginScreen from '../components/dashboard/LoginScreen'
 import Navbar from '../components/dashboard/Navbar'
 import VendedoresTab from '../components/dashboard/VendedoresTab'
@@ -53,8 +53,15 @@ export default function Dashboard() {
       if (session) {
         sessionStorage.setItem('vendamax_dash_auth', '1')
         setAuthed(true)
-        await carregarDados(undefined, { showLoading: true })
+        // Com cache a tela abre na hora e atualiza em segundo plano;
+        // sem cache (primeiro acesso) mostra o spinner até chegar
+        const { temCache } = useStore.getState()
+        setChecking(false)
+        await carregarDados(undefined, { showLoading: !temCache })
+        return
       }
+      // Sem sessão: não deixa dado de vendas guardado no navegador
+      limparCache()
       setChecking(false)
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps

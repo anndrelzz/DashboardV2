@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { sb } from '../../lib/supabase'
+import { limparCache } from '../../store/useStore'
 import { IconResumo, IconPerformance, IconMeta, IconVendas, IconVendedores, IconEquipes, IconScale, IconTrophy, IconLogout, IconArrowLeft } from './icons'
 
 const LOGO = (
@@ -24,6 +25,7 @@ export default function Sidebar({ active, onChange }) {
 
   const logout = async () => {
     sessionStorage.removeItem('vendamax_dash_auth')
+    limparCache()
     await sb.auth.signOut()
     navigate('/')
   }

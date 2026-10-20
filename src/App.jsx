@@ -1,9 +1,11 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Spinner from './components/ui/Spinner'
+// Dashboard é a página que a TV abre: vem no pacote principal pra não
+// esperar um segundo download. Só o Admin fica sob demanda.
+import Dashboard from './pages/Dashboard'
 
-const Dashboard = lazy(() => import('./pages/Dashboard'))
-const Admin     = lazy(() => import('./pages/Admin'))
+const Admin = lazy(() => import('./pages/Admin'))
 
 function Fallback() {
   return (
