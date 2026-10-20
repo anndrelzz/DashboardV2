@@ -86,9 +86,12 @@ export default function SecVendedores({ equipes, vendedores, vendas, onRefresh }
 
   const remover = async (id) => {
     if (!confirm('Remover vendedor e suas vendas?')) return
-    await sb.from('vendas').delete().eq('vendedor_id', id)
-    await sb.from('vendedores').delete().eq('id', id)
+    const r1 = await sb.from('vendas').delete().eq('vendedor_id', id)
+    if (r1.error) { toast('Erro ao remover vendas do vendedor', false); return }
+    const r2 = await sb.from('vendedores').delete().eq('id', id)
+    if (r2.error) { toast('Erro ao remover vendedor (as vendas dele já foram apagadas)', false); await onRefresh(); return }
     await onRefresh()
+    toast('Vendedor removido')
   }
 
   const inputCls = "rounded-lg px-4 py-2.5 text-white text-sm outline-none border border-white/10 focus:border-red/40 transition-colors w-full"

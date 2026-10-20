@@ -78,13 +78,16 @@ export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
 
   const remover = async (id) => {
     if (!confirm('Remover esta venda?')) return
-    await sb.from('vendas').delete().eq('id', id)
+    const { error } = await sb.from('vendas').delete().eq('id', id)
+    if (error) { toast('Erro ao remover venda', false); return }
     await onRefresh()
+    toast('Venda removida')
   }
 
   const limpar = async () => {
     if (!confirm(`Limpar todas as vendas de ${mesExibido}?`)) return
-    await sb.from('vendas').delete().eq('mes', mesExibido)
+    const { error } = await sb.from('vendas').delete().eq('mes', mesExibido)
+    if (error) { toast('Erro ao limpar vendas do mês', false); return }
     await onRefresh()
     toast('Vendas do mês removidas')
   }

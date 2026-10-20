@@ -63,6 +63,13 @@ export default function Dashboard() {
   useEffect(() => {
     if (!authed) return
     let jaConectouUmaVez = false
+    // Junta rajadas de eventos (ex: "limpar mês" apaga 200 vendas = 200 DELETEs)
+    // num único carregarDados, pra não estourar o Disk IO do Supabase
+    let debounceTimer = null
+    const recarregar = () => {
+      clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => carregarDados(), 1000)
+    }
     const ch = sb.channel('realtime-dash-v2')
       .on('postgres_changes', { event:'INSERT', schema:'public', table:'vendas' }, async (payload) => {
         await carregarDados()
@@ -79,18 +86,18 @@ export default function Dashboard() {
         const totalAtual = vendasDoTotal.reduce((a, b) => a + Number(b.valor), 0)
         setCelebracao({ venda: novaVenda, vendedor: vend, equipe: eq, totalAtual })
       })
-      .on('postgres_changes', { event:'UPDATE', schema:'public', table:'vendas' },     async () => carregarDados())
-      .on('postgres_changes', { event:'DELETE', schema:'public', table:'vendas' },     async () => carregarDados())
-      .on('postgres_changes', { event:'*',      schema:'public', table:'metas' },      async () => carregarDados())
-      .on('postgres_changes', { event:'*',      schema:'public', table:'meta_fechamento' }, async () => carregarDados())
-      .on('postgres_changes', { event:'*',      schema:'public', table:'vendedores' }, async () => carregarDados())
-      .on('postgres_changes', { event:'*',      schema:'public', table:'equipes' },    async () => carregarDados())
-      .on('postgres_changes', { event:'*',      schema:'public', table:'semana_fechamento' }, async () => carregarDados())
+      .on('postgres_changes', { event:'UPDATE', schema:'public', table:'vendas' },     recarregar)
+      .on('postgres_changes', { event:'DELETE', schema:'public', table:'vendas' },     recarregar)
+      .on('postgres_changes', { event:'*',      schema:'public', table:'metas' },      recarregar)
+      .on('postgres_changes', { event:'*',      schema:'public', table:'meta_fechamento' }, recarregar)
+      .on('postgres_changes', { event:'*',      schema:'public', table:'vendedores' }, recarregar)
+      .on('postgres_changes', { event:'*',      schema:'public', table:'equipes' },    recarregar)
+      .on('postgres_changes', { event:'*',      schema:'public', table:'semana_fechamento' }, recarregar)
       .subscribe((status) => {
         // Só busca dados de novo quando a conexão ao vivo (re)conecta — cobre
         // o caso de ter perdido eventos enquanto estava caída. Sem isso não
         // precisa ficar perguntando pro banco "mudou algo?" toda hora.
-        if (status === 'SUBSCRIBED' && jaConectouUmaVez) carregarDados()
+        if (status === 'SUBSCRIBED' && jaConectouUmaVez) recarregar()
         if (status === 'SUBSCRIBED') jaConectouUmaVez = true
       })
     // Rede de segurança bem espaçada, só pro caso raríssimo da conexão ficar
@@ -98,7 +105,7 @@ export default function Dashboard() {
     // não é o mecanismo principal de atualização, é só uma garantia extra
     // pra não pesar no Disk IO Budget do plano Free do Supabase
     const poll = setInterval(() => carregarDados(), 60 * 60_000)
-    return () => { sb.removeChannel(ch); clearInterval(poll) }
+    return () => { sb.removeChannel(ch); clearInterval(poll); clearTimeout(debounceTimer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed])
 

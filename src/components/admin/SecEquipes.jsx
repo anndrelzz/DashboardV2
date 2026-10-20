@@ -22,9 +22,14 @@ export default function SecEquipes({ equipes, vendedores, vendas, onRefresh }) {
 
   const remover = async (id) => {
     if (!confirm('Remover equipe? Os vendedores ficarão sem equipe.')) return
-    await sb.from('vendedores').update({ equipe_id: null }).eq('equipe_id', id)
-    await sb.from('equipes').delete().eq('id', id)
+    // Se desvincular os vendedores falhar, não apaga a equipe (senão ficariam
+    // apontando pra uma equipe que não existe mais)
+    const r1 = await sb.from('vendedores').update({ equipe_id: null }).eq('equipe_id', id)
+    if (r1.error) { toast('Erro ao desvincular vendedores da equipe', false); return }
+    const r2 = await sb.from('equipes').delete().eq('id', id)
+    if (r2.error) { toast('Erro ao remover equipe (vendedores já ficaram sem equipe)', false); await onRefresh(); return }
     await onRefresh()
+    toast('Equipe removida')
   }
 
   return (
