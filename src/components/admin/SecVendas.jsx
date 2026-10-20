@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { sb } from '../../lib/supabase'
 import useStore from '../../store/useStore'
-import { getMes, fmt, getDiaFechamento } from '../../lib/utils'
+import { fmt, getDiaFechamento } from '../../lib/utils'
 import { toast } from '../../lib/toast'
 import Modal from '../ui/Modal'
 import SectionHeader from './SectionHeader'
@@ -39,8 +39,9 @@ export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
     const val = parseFloat(valor)
     if (!val || val <= 0) { toast('Informe um valor válido', false); return }
     if (!tipo) { toast('Selecione o tipo', false); return }
+    if (!data) { toast('Informe a data', false); return }
     setSaving(true)
-    const mes = data ? data.substring(0,7) : getMes()
+    const mes = data.substring(0, 7)
     const { error } = await sb.from('vendas').insert({ vendedor_id:vendId, valor:val, data, descricao:desc.trim(), tipo, mes })
     setSaving(false)
     if (error) { toast('Erro ao lançar venda', false); return }
