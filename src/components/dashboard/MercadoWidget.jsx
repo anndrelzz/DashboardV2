@@ -49,8 +49,8 @@ export default function MercadoWidget() {
         // IBOV indisponível: segue só com os outros índices
       }
 
-      list.push({ nome:'SELIC', valor:'14,00%', var:null })
-      list.push({ nome:'CDI',   valor:'13,90%', var:null })
+      list.push({ nome:'SELIC', valor:'13,75%', var:null })
+      list.push({ nome:'CDI',   valor:'13,65%', var:null })
 
       setItems(list)
     } catch {
