@@ -7,7 +7,7 @@ import { IconUser, IconPlus, IconEdit } from './icons'
 // Conteúdo da setinha de Equipes: resumo do mês da equipe + integrantes.
 // Clicar num integrante abre as vendas dele (editar/excluir); "+ Venda" lança
 // uma venda já com ele preenchido.
-export default function EquipeDetalhe({ equipe, membros, vendas, mes, onEditar, onExcluir, onNovaVenda, onEditarVendedor }) {
+export default function EquipeDetalhe({ equipe, membros, vendas, mes, onEditar, onExcluir, onNovaVenda, onEditarVendedor, onAdicionar }) {
   const [abertos, setAbertos] = useState(() => new Set())
   const alternar = (id) => setAbertos(prev => {
     const n = new Set(prev)
@@ -40,6 +40,11 @@ export default function EquipeDetalhe({ equipe, membros, vendas, mes, onEditar, 
             <t.Icon size={13} />{t.label} · {t.qtd} · {fmt(t.total)}
           </span>
         ))}
+        <button onClick={onAdicionar}
+          className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold tracking-wide uppercase border text-white border-red/40 hover:bg-red/20 transition-colors"
+          style={{ background:'rgba(232,0,13,0.12)' }}>
+          <IconPlus size={13} />Adicionar integrante
+        </button>
       </div>
 
       {linhas.length === 0 ? (

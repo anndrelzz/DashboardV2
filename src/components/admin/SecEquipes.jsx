@@ -9,6 +9,7 @@ import EquipeDetalhe from './EquipeDetalhe'
 import EditarVendaModal from './EditarVendaModal'
 import NovaVendaModal from './NovaVendaModal'
 import EditarVendedorModal from './EditarVendedorModal'
+import AdicionarIntegranteModal from './AdicionarIntegranteModal'
 import { IconEquipes, IconTrash } from './icons'
 
 const inputCls = "rounded-lg px-4 py-2.5 text-white text-sm outline-none border border-white/10 focus:border-red/40 transition-colors"
@@ -23,6 +24,7 @@ export default function SecEquipes({ equipes, vendedores, unidades = [], mesAtua
   const [vendaEditando, setVendaEditando] = useState(null)
   const [novaVendaPara, setNovaVendaPara] = useState(null)
   const [vendedorEditando, setVendedorEditando] = useState(null)
+  const [adicionarEm, setAdicionarEm] = useState(null) // equipe recebendo integrante
   const alternar = (id) => setAbertas(prev => {
     const n = new Set(prev)
     if (n.has(id)) n.delete(id); else n.add(id)
@@ -209,7 +211,8 @@ export default function SecEquipes({ equipes, vendedores, unidades = [], mesAtua
                         onEditar={setVendaEditando}
                         onExcluir={id => excluirVenda(id, onRefresh)}
                         onNovaVenda={setNovaVendaPara}
-                        onEditarVendedor={setVendedorEditando} />
+                        onEditarVendedor={setVendedorEditando}
+                        onAdicionar={() => setAdicionarEm(e)} />
                     </td>
                   </tr>
                 )}
@@ -226,6 +229,8 @@ export default function SecEquipes({ equipes, vendedores, unidades = [], mesAtua
         onClose={() => setNovaVendaPara(null)} onSaved={onRefresh} />
       <EditarVendedorModal vendedor={vendedorEditando} equipes={equipes}
         onClose={() => setVendedorEditando(null)} onSaved={onRefresh} />
+      <AdicionarIntegranteModal equipe={adicionarEm} equipes={equipes} vendedores={vendedores}
+        onClose={() => setAdicionarEm(null)} onSaved={onRefresh} />
 
       {/* Unidades */}
       <div className="rounded-2xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.07)' }}>
