@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { fmt, fmtMesLabel, NIVEL_CORES } from '../../lib/utils'
 import { TIPOS, tipoInfo } from '../../lib/tiposVenda'
 import VendasDoVendedor from './VendasDoVendedor'
-import { IconUser, IconPlus } from './icons'
+import { IconUser, IconPlus, IconEdit } from './icons'
 
 // Conteúdo da setinha de Equipes: resumo do mês da equipe + integrantes.
 // Clicar num integrante abre as vendas dele (editar/excluir); "+ Venda" lança
 // uma venda já com ele preenchido.
-export default function EquipeDetalhe({ equipe, membros, vendas, mes, onEditar, onExcluir, onNovaVenda }) {
+export default function EquipeDetalhe({ equipe, membros, vendas, mes, onEditar, onExcluir, onNovaVenda, onEditarVendedor }) {
   const [abertos, setAbertos] = useState(() => new Set())
   const alternar = (id) => setAbertos(prev => {
     const n = new Set(prev)
@@ -70,7 +70,11 @@ export default function EquipeDetalhe({ equipe, membros, vendas, mes, onEditar, 
                   <td className="px-3 py-2.5 text-[12px] font-bold w-24" style={{ color: NIVEL_CORES[m.nivel] || 'rgba(255,255,255,0.4)' }}>{m.nivel || '—'}</td>
                   <td className="px-3 py-2.5 text-[13px] text-muted w-28">{minhas.length} {minhas.length === 1 ? 'venda' : 'vendas'}</td>
                   <td className="px-3 py-2.5 font-bebas text-[16px] text-red w-36">{fmt(total)}</td>
-                  <td className="px-5 py-2.5 w-32 text-right" onClick={e => e.stopPropagation()}>
+                  <td className="px-5 py-2.5 w-52 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                    <button onClick={() => onEditarVendedor(m)} title="Editar nome, foto, nível, equipe"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 mr-2 rounded text-[11px] font-bold tracking-wide border text-muted border-white/15 hover:text-white hover:border-white/30 transition-colors">
+                      <IconEdit size={12} />Editar
+                    </button>
                     <button onClick={() => onNovaVenda(m)}
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-[11px] font-bold tracking-wide border text-white border-red/40 hover:bg-red/20 transition-colors"
                       style={{ background:'rgba(232,0,13,0.12)' }}>

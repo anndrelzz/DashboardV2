@@ -3,23 +3,13 @@ import { sb } from '../../lib/supabase'
 import { fmt, NIVEIS, NIVEL_CORES, normalizarBusca } from '../../lib/utils'
 import { excluirVenda } from '../../lib/excluirVenda'
 import { toast } from '../../lib/toast'
-import Modal from '../ui/Modal'
+import { uploadFoto } from '../../lib/fotoVendedor'
 import SectionHeader from './SectionHeader'
 import MesSelector from './MesSelector'
 import EditarVendaModal from './EditarVendaModal'
+import EditarVendedorModal from './EditarVendedorModal'
 import VendasDoVendedor from './VendasDoVendedor'
 import { IconVendedores, IconUser, IconCamera, IconEdit, IconTrash, IconSearch } from './icons'
-
-const BUCKET = 'fotos-vendedores'
-
-async function uploadFoto(file, vendedorId) {
-  const ext  = file.name.split('.').pop()
-  const path = `${vendedorId}.${ext}`
-  const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert: true })
-  if (error) return null
-  const { data } = sb.storage.from(BUCKET).getPublicUrl(path)
-  return data.publicUrl + '?t=' + Date.now()
-}
 
 export default function SecVendedores({ equipes, vendedores, mesAtual, consulta }) {
   // Vendas do mês escolhido no seletor (padrão: mês atual). recarregar atualiza
@@ -33,12 +23,6 @@ export default function SecVendedores({ equipes, vendedores, mesAtual, consulta 
   const [saving, setSaving]   = useState(false)
 
   const [editando, setEditando]     = useState(null) // vendedor em edição
-  const [editNome, setEditNome]     = useState('')
-  const [editEmpresa, setEditEmpresa] = useState('')
-  const [editNivel, setEditNivel]   = useState('')
-  const [editEqId, setEditEqId]     = useState('')
-  const [editFoto, setEditFoto]     = useState(null)
-  const [editSaving, setEditSaving] = useState(false)
 
   const [busca, setBusca] = useState('')
   const [ordem, setOrdem] = useState('nome') // 'nome' | 'total'
@@ -81,31 +65,6 @@ export default function SecVendedores({ equipes, vendedores, mesAtual, consulta 
     setNome(''); setEmpresa(''); setNivel(''); setEqId(''); setFoto(null)
     await onRefresh()
     toast('Vendedor cadastrado!')
-  }
-
-  const abrirEdicao = (v) => {
-    setEditando(v)
-    setEditNome(v.nome || '')
-    setEditEmpresa(v.empresa || '')
-    setEditNivel(v.nivel || '')
-    setEditEqId(v.equipe_id || '')
-    setEditFoto(null)
-  }
-
-  const salvarEdicao = async () => {
-    if (!editNome.trim()) { toast('Informe o nome', false); return }
-    setEditSaving(true)
-    const upd = { nome: editNome.trim(), empresa: editEmpresa.trim(), nivel: editNivel, equipe_id: editEqId || null }
-    if (editFoto) {
-      const url = await uploadFoto(editFoto, editando.id)
-      if (url) upd.foto_url = url
-    }
-    const { error } = await sb.from('vendedores').update(upd).eq('id', editando.id)
-    setEditSaving(false)
-    if (error) { toast('Erro ao salvar', false); return }
-    setEditando(null)
-    await onRefresh()
-    toast('Vendedor atualizado!')
   }
 
   const remover = async (id) => {
@@ -255,7 +214,7 @@ export default function SecVendedores({ equipes, vendedores, mesAtual, consulta 
                   <td className="px-5 py-3.5 font-bebas text-[15px] text-red">{fmt(total)}</td>
                   <td className="px-5 py-3.5" onClick={e => e.stopPropagation()}>
                     <div className="flex gap-2">
-                      <button onClick={() => abrirEdicao(v)}
+                      <button onClick={() => setEditando(v)}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11px] font-bold tracking-wide border text-muted border-white/15 hover:text-white hover:border-white/30 transition-colors"
                         style={{background:'#282828'}}>
                         <IconEdit size={12} />Editar
@@ -287,72 +246,8 @@ export default function SecVendedores({ equipes, vendedores, mesAtual, consulta 
       <EditarVendaModal venda={vendaEditando} vendedores={vendedores}
         onClose={() => setVendaEditando(null)} onSaved={onRefresh} />
 
-      {/* Modal edição */}
-      <Modal open={!!editando} onClose={() => setEditando(null)} title="Editar Vendedor">
-        <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Nome Completo</label>
-              <input type="text" value={editNome} onChange={e=>setEditNome(e.target.value)} className={inputCls} style={inputBg} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Empresa</label>
-              <input type="text" value={editEmpresa} onChange={e=>setEditEmpresa(e.target.value)} className={inputCls} style={inputBg} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Nível</label>
-              <select value={editNivel} onChange={e=>setEditNivel(e.target.value)} className={inputCls} style={inputBg}>
-                <option value="">Selecione...</option>
-                {NIVEIS.map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Equipe</label>
-              <select value={editEqId} onChange={e=>setEditEqId(e.target.value)} className={inputCls} style={inputBg}>
-                <option value="">Sem equipe</option>
-                {equipes.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* Foto no modal */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Foto</label>
-            <div className="flex items-center gap-4">
-              {(editFoto || editando?.foto_url) ? (
-                <img
-                  src={editFoto ? URL.createObjectURL(editFoto) : editando?.foto_url}
-                  className="w-14 h-14 rounded-full object-cover border-2 border-red/40"
-                  alt="preview"
-                />
-              ) : (
-                <div className="w-14 h-14 rounded-full flex items-center justify-center border" style={{ background:'#1F1F1F', borderColor:'rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.3)' }}>
-                  <IconUser size={22} />
-                </div>
-              )}
-              <label className="inline-flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-lg border text-sm font-semibold text-muted hover:text-white hover:border-white/20 transition-colors"
-                style={{ background:'#1F1F1F', borderColor:'rgba(255,255,255,0.1)' }}>
-                <IconCamera size={15} />
-                {editFoto ? 'Trocar foto' : editando?.foto_url ? 'Mudar foto' : 'Selecionar foto'}
-                <input type="file" accept="image/*" className="hidden" onChange={e => setEditFoto(e.target.files[0])} />
-              </label>
-            </div>
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button onClick={salvarEdicao} disabled={editSaving}
-              className="px-6 py-2.5 rounded-lg font-cond font-bold text-[13px] tracking-[2px] uppercase text-white disabled:opacity-60"
-              style={{ background:'#E8000D' }}>
-              {editSaving ? 'Salvando...' : 'Salvar'}
-            </button>
-            <button onClick={() => setEditando(null)}
-              className="px-6 py-2.5 rounded-lg font-cond font-bold text-[13px] tracking-[2px] uppercase border text-muted hover:text-white hover:border-white/25 transition-colors"
-              style={{ background:'#1F1F1F', borderColor:'rgba(255,255,255,0.1)' }}>
-              Cancelar
-            </button>
-          </div>
-        </div>
-      </Modal>
+      <EditarVendedorModal vendedor={editando} equipes={equipes}
+        onClose={() => setEditando(null)} onSaved={onRefresh} />
     </div>
   )
 }
