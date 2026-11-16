@@ -31,6 +31,7 @@ const useStore = create((set, get) => ({
   metaFechamento: cache?.metaFechamento ?? 0,
   vendedores:     cache?.vendedores     ?? [],
   equipes:        cache?.equipes        ?? [],
+  unidades:       cache?.unidades       ?? [],
   vendas:         cache?.vendas         ?? [],
   mes:            getMes(),
   loading:        false,
@@ -45,14 +46,18 @@ const useStore = create((set, get) => ({
     const mes = mesParam || get().mes
     if (showLoading) set({ loading: true })
     try {
-      const [r1, r2, r3, r4, r5, r6] = await Promise.all([
+      const [r1, r2, r3, r4, r5, r6, r7] = await Promise.all([
         sb.from('equipes').select('*').order('nome'),
         sb.from('vendedores').select('*').order('nome'),
         sb.from('metas').select('*').eq('mes', mes).maybeSingle(),
         sb.from('vendas').select('*').eq('mes', mes).order('created_at', { ascending: false }),
         sb.from('meta_fechamento').select('*').eq('id', 1).maybeSingle(),
         sb.from('semana_fechamento').select('*').eq('mes', mes).maybeSingle(),
+        sb.from('unidades').select('*').order('ordem'),
       ])
+      // unidades fica de fora da checagem de erro: se a tabela ainda não existir
+      // (SQL não rodado), o dashboard segue funcionando sem o filtro de unidade
+      if (r7.error) console.warn('Unidades indisponíveis:', r7.error.message)
       // Se alguma consulta falhar (rede caiu, banco lento), mantém o que já
       // está na tela em vez de zerar tudo
       const erro = [r1, r2, r3, r4, r5, r6].find(r => r.error)
@@ -60,6 +65,7 @@ const useStore = create((set, get) => ({
 
       const dados = {
         equipes:        r1.data || [],
+        unidades:       r7.error ? get().unidades : (r7.data || []),
         vendedores:     r2.data || [],
         meta:           r3.data?.valor || 0,
         vendas:         r4.data || [],

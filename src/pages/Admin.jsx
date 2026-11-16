@@ -20,7 +20,7 @@ export default function Admin() {
   const [checking, setChecking] = useState(true)
   const [section, setSection]   = useState('resumo')
 
-  const { meta, metaFechamento, semanaFechamento, vendedores, equipes, vendas, mes, carregarDados } = useStore()
+  const { meta, metaFechamento, semanaFechamento, vendedores, equipes, unidades, vendas, mes, carregarDados } = useStore()
 
   // Mês escolhido no seletor de Vendedores / Lançar Venda (padrão: mês atual).
   // Fica aqui pra valer igual nas duas abas.
@@ -63,7 +63,7 @@ export default function Admin() {
         {section === 'meta'        && <SecMeta metaFechamento={metaFechamento} onRefresh={refresh} />}
         {section === 'vendas'      && <SecVendas {...secProps} mesAtual={mes} consulta={consulta} />}
         {section === 'vendedores'  && <SecVendedores {...secProps} mesAtual={mes} consulta={consulta} />}
-        {section === 'equipes'     && <SecEquipes {...secProps} />}
+        {section === 'equipes'     && <SecEquipes {...secProps} unidades={unidades} />}
         {section === 'conferencia' && <SecConferencia {...secProps} />}
         {section === 'semana'      && <SecRankingSemana {...secProps} semanaFechamento={semanaFechamento} />}
       </div>

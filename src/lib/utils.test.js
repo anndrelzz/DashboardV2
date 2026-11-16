@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { toISODateLocal, getDiaFechamento, getMes, normalizarBusca, compararConferencia, fmt, diasEntre, fmtDiaMes, filtrarVendasSemana, filtrarVendasDoDia, pctMeta, fmtMesLabel, somarMes, fmtDataBR } from './utils'
+import { toISODateLocal, getDiaFechamento, getMes, normalizarBusca, compararConferencia, fmt, diasEntre, fmtDiaMes, filtrarVendasSemana, filtrarVendasDoDia, pctMeta, fmtMesLabel, somarMes, fmtDataBR, unidadePadraoId, filtrarPorUnidade, slugUnidade } from './utils'
 
 describe('toISODateLocal', () => {
   it('formata com zero à esquerda', () => {
@@ -205,5 +205,40 @@ describe('meses', () => {
     expect(fmtDataBR('2026-11-16')).toBe('16/11/2026')
     expect(fmtDataBR('2026-11-16T10:00:00')).toBe('16/11/2026')
     expect(fmtDataBR(null)).toBe('—')
+  })
+})
+
+describe('filtrarPorUnidade', () => {
+  const unidades = [{ id:'u2', nome:'Santo Antônio', ordem:2 }, { id:'u1', nome:'Joinville América', ordem:1 }]
+  const equipes = [{ id:'e1', unidade_id:'u1' }, { id:'e2', unidade_id:'u2' }, { id:'e3', unidade_id:null }]
+  const vendedores = [{ id:'a', equipe_id:'e1' }, { id:'b', equipe_id:'e2' }, { id:'c', equipe_id:'e3' }, { id:'d', equipe_id:null }]
+  const vendas = [{ vendedor_id:'a' }, { vendedor_id:'b' }, { vendedor_id:'c' }, { vendedor_id:'d' }, { vendedor_id:'removido' }]
+
+  it('unidade padrão é a de menor ordem', () => {
+    expect(unidadePadraoId(unidades)).toBe('u1')
+    expect(unidadePadraoId([])).toBe(null)
+  })
+  it('todas devolve tudo', () => {
+    const r = filtrarPorUnidade({ unidades, equipes, vendedores, vendas, unidadeId:'todas' })
+    expect(r.vendas).toHaveLength(5)
+  })
+  it('sem unidades cadastradas devolve tudo', () => {
+    const r = filtrarPorUnidade({ unidades:[], equipes, vendedores, vendas, unidadeId:'u2' })
+    expect(r.vendas).toHaveLength(5)
+  })
+  it('padrão inclui equipe sem unidade, vendedor sem equipe e vendedor removido', () => {
+    const r = filtrarPorUnidade({ unidades, equipes, vendedores, vendas, unidadeId:'u1' })
+    expect(r.equipes.map(e => e.id)).toEqual(['e1', 'e3'])
+    expect(r.vendedores.map(v => v.id)).toEqual(['a', 'c', 'd'])
+    expect(r.vendas.map(v => v.vendedor_id)).toEqual(['a', 'c', 'd', 'removido'])
+  })
+  it('outra unidade só pega as suas', () => {
+    const r = filtrarPorUnidade({ unidades, equipes, vendedores, vendas, unidadeId:'u2' })
+    expect(r.equipes.map(e => e.id)).toEqual(['e2'])
+    expect(r.vendas.map(v => v.vendedor_id)).toEqual(['b'])
+  })
+  it('slugUnidade', () => {
+    expect(slugUnidade('Santo Antônio')).toBe('santo-antonio')
+    expect(slugUnidade('Jardins SP')).toBe('jardins-sp')
   })
 })

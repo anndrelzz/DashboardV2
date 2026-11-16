@@ -1,23 +1,43 @@
 import { useState } from 'react'
 import { sb } from '../../lib/supabase'
-import { fmt } from '../../lib/utils'
+import { fmt, unidadePadraoId } from '../../lib/utils'
 import { toast } from '../../lib/toast'
 import SectionHeader from './SectionHeader'
 import { IconEquipes, IconTrash } from './icons'
 
-export default function SecEquipes({ equipes, vendedores, vendas, onRefresh }) {
-  const [nome, setNome]     = useState('')
-  const [saving, setSaving] = useState(false)
+const inputCls = "rounded-lg px-4 py-2.5 text-white text-sm outline-none border border-white/10 focus:border-red/40 transition-colors"
+const inputBg  = { background:'#1F1F1F' }
+
+export default function SecEquipes({ equipes, vendedores, vendas, unidades = [], onRefresh }) {
+  const [nome, setNome]       = useState('')
+  const [uniId, setUniId]     = useState('')
+  const [saving, setSaving]   = useState(false)
+  const [novaUni, setNovaUni] = useState('')
+  const [savingUni, setSavingUni] = useState(false)
+
+  const temUnidades = unidades.length > 0
+  const padraoId    = unidadePadraoId(unidades)
+  const nomeUni     = id => unidades.find(u => u.id === id)?.nome
 
   const cadastrar = async () => {
     if (!nome.trim()) { toast('Informe o nome', false); return }
     setSaving(true)
-    const { error } = await sb.from('equipes').insert({ nome: nome.trim() })
+    const { error } = await sb.from('equipes').insert({ nome: nome.trim(), ...(uniId ? { unidade_id: uniId } : {}) })
     setSaving(false)
     if (error) { toast('Equipe já existe ou erro ao cadastrar', false); return }
     setNome('')
     await onRefresh()
     toast('Equipe cadastrada!')
+  }
+
+  const trocarUnidade = async (equipeId, unidadeId) => {
+    // .select() devolve as linhas alteradas: se a regra de acesso (RLS) bloquear,
+    // o Supabase não dá erro, só não altera nada — por isso confere a quantidade
+    const { data, error } = await sb.from('equipes').update({ unidade_id: unidadeId || null }).eq('id', equipeId).select('id')
+    if (error) { console.error(error); toast(`Erro ao mudar a unidade: ${error.message}`, false); return }
+    if (!data?.length) { toast('O banco não deixou alterar a equipe (permissão de update)', false); return }
+    await onRefresh()
+    toast('Unidade atualizada')
   }
 
   const remover = async (id) => {
@@ -32,9 +52,30 @@ export default function SecEquipes({ equipes, vendedores, vendas, onRefresh }) {
     toast('Equipe removida')
   }
 
+  const cadastrarUnidade = async () => {
+    if (!novaUni.trim()) { toast('Informe o nome da unidade', false); return }
+    setSavingUni(true)
+    const ordem = Math.max(0, ...unidades.map(u => u.ordem ?? 0)) + 1
+    const { error } = await sb.from('unidades').insert({ nome: novaUni.trim(), ordem })
+    setSavingUni(false)
+    if (error) { toast('Unidade já existe ou erro ao cadastrar', false); return }
+    setNovaUni('')
+    await onRefresh()
+    toast('Unidade cadastrada!')
+  }
+
+  const removerUnidade = async (u) => {
+    const qtd = equipes.filter(e => e.unidade_id === u.id).length
+    if (!confirm(`Remover a unidade ${u.nome}?${qtd ? ` As ${qtd} equipe(s) dela passam a contar como ${nomeUni(padraoId)}.` : ''}`)) return
+    const { error } = await sb.from('unidades').delete().eq('id', u.id)
+    if (error) { toast('Erro ao remover unidade', false); return }
+    await onRefresh()
+    toast('Unidade removida')
+  }
+
   return (
     <div className="p-10 flex flex-col gap-8">
-      <SectionHeader icon={<IconEquipes size={20} />} title="Equipes" subtitle="Cadastre e gerencie equipes" />
+      <SectionHeader icon={<IconEquipes size={20} />} title="Equipes" subtitle="Cadastre e gerencie equipes e unidades" />
 
       <div className="rounded-2xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.07)' }}>
         <div className="px-6 py-4.5 border-b" style={{ borderColor:'rgba(255,255,255,0.07)' }}>
@@ -43,16 +84,19 @@ export default function SecEquipes({ equipes, vendedores, vendas, onRefresh }) {
         <div className="p-6 flex gap-4 items-end">
           <div className="flex flex-col gap-1.5 flex-1 max-w-sm">
             <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Nome da Equipe</label>
-            <input
-              type="text"
-              value={nome}
-              onChange={e => setNome(e.target.value)}
+            <input type="text" value={nome} onChange={e => setNome(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && cadastrar()}
-              placeholder="Ex: Equipe Alfa"
-              className="rounded-lg px-4 py-2.5 text-white text-sm outline-none border border-white/10 focus:border-red/40 transition-colors"
-              style={{ background:'#1F1F1F' }}
-            />
+              placeholder="Ex: Equipe Alfa" className={inputCls} style={inputBg} />
           </div>
+          {temUnidades && (
+            <div className="flex flex-col gap-1.5 w-64">
+              <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Unidade</label>
+              <select value={uniId} onChange={e => setUniId(e.target.value)} className={inputCls} style={inputBg}>
+                <option value="">{nomeUni(padraoId)} (padrão)</option>
+                {unidades.filter(u => u.id !== padraoId).map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+              </select>
+            </div>
+          )}
           <button onClick={cadastrar} disabled={saving}
             className="px-6 py-2.5 rounded-lg font-cond font-bold text-[13px] tracking-[2px] uppercase text-white disabled:opacity-60"
             style={{ background:'#E8000D' }}>
@@ -68,7 +112,7 @@ export default function SecEquipes({ equipes, vendedores, vendas, onRefresh }) {
         <table className="w-full">
           <thead>
             <tr style={{ background:'#1c1c1c' }}>
-              {['Nome da Equipe','Membros','Total no Mês',''].map(h => (
+              {['Nome da Equipe', ...(temUnidades ? ['Unidade'] : []), 'Membros','Total no Mês',''].map(h => (
                 <th key={h} className="text-left px-6 py-3.5 text-[10.5px] font-bold tracking-[2px] uppercase text-muted border-b"
                   style={{ borderColor:'rgba(255,255,255,0.07)' }}>{h}</th>
               ))}
@@ -76,7 +120,7 @@ export default function SecEquipes({ equipes, vendedores, vendas, onRefresh }) {
           </thead>
           <tbody>
             {equipes.length === 0 ? (
-              <tr><td colSpan={4} className="text-center py-14 text-muted text-[13px] tracking-wider uppercase">Nenhuma equipe cadastrada</td></tr>
+              <tr><td colSpan={5} className="text-center py-14 text-muted text-[13px] tracking-wider uppercase">Nenhuma equipe cadastrada</td></tr>
             ) : equipes.map(e => {
               const membros = vendedores.filter(v => v.equipe_id === e.id)
               const total   = vendas.filter(v => membros.find(m => m.id === v.vendedor_id)).reduce((a,b) => a+Number(b.valor), 0)
@@ -84,6 +128,16 @@ export default function SecEquipes({ equipes, vendedores, vendas, onRefresh }) {
                 <tr key={e.id} className="border-b last:border-0 hover:bg-white/[0.02] transition-colors"
                   style={{ borderColor:'rgba(255,255,255,0.05)' }}>
                   <td className="px-6 py-3.5 text-[13.5px] font-semibold">{e.nome}</td>
+                  {temUnidades && (
+                    <td className="px-6 py-3">
+                      <select value={e.unidade_id || ''} onChange={ev => trocarUnidade(e.id, ev.target.value)}
+                        className="rounded-lg px-3 py-1.5 text-white text-[13px] outline-none border border-white/10 focus:border-red/40"
+                        style={inputBg}>
+                        <option value="">{nomeUni(padraoId)} (padrão)</option>
+                        {unidades.filter(u => u.id !== padraoId).map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+                      </select>
+                    </td>
+                  )}
                   <td className="px-6 py-3.5 text-[13px] text-muted">{membros.length} membro(s)</td>
                   <td className="px-6 py-3.5 font-bebas text-[15px] text-red">{fmt(total)}</td>
                   <td className="px-6 py-3.5">
@@ -98,6 +152,45 @@ export default function SecEquipes({ equipes, vendedores, vendas, onRefresh }) {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Unidades */}
+      <div className="rounded-2xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.07)' }}>
+        <div className="px-6 py-4.5 border-b" style={{ borderColor:'rgba(255,255,255,0.07)' }}>
+          <span className="font-cond font-bold text-sm tracking-[2px] uppercase">Unidades</span>
+        </div>
+        {!temUnidades ? (
+          <p className="px-6 py-6 text-[13px] text-muted">
+            Tabela de unidades ainda não criada no Supabase (rodar <code className="text-white">sql/2026-11-unidades.sql</code>).
+          </p>
+        ) : (
+          <div className="p-6 flex flex-col gap-5">
+            <div className="flex flex-wrap gap-2.5">
+              {unidades.map(u => (
+                <span key={u.id} className="inline-flex items-center gap-2 pl-3.5 pr-1.5 py-1.5 rounded-lg border text-[13px] font-semibold"
+                  style={{ background:'#1F1F1F', borderColor:'rgba(255,255,255,0.1)' }}>
+                  {u.nome}
+                  {u.id === padraoId
+                    ? <span className="text-[10px] font-bold tracking-wide uppercase text-muted px-1.5">padrão</span>
+                    : <button onClick={() => removerUnidade(u)} title="Remover unidade"
+                        className="w-6 h-6 flex items-center justify-center rounded text-muted hover:text-red hover:bg-red/10 transition-colors">
+                        <IconTrash size={12} />
+                      </button>}
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-3 items-center">
+              <input type="text" value={novaUni} onChange={e => setNovaUni(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && cadastrarUnidade()}
+                placeholder="Nova unidade" className={`${inputCls} w-72`} style={inputBg} />
+              <button onClick={cadastrarUnidade} disabled={savingUni}
+                className="px-5 py-2.5 rounded-lg font-cond font-bold text-[12px] tracking-[2px] uppercase border text-muted hover:text-white hover:border-white/25 transition-colors disabled:opacity-60"
+                style={{ background:'#1F1F1F', borderColor:'rgba(255,255,255,0.1)' }}>
+                {savingUni ? 'Salvando...' : 'Adicionar'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

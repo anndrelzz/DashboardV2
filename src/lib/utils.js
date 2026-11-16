@@ -126,3 +126,31 @@ export const fmtDataBR = (iso) => {
   const s = String(iso).slice(0, 10)
   return `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}`
 }
+
+// ── Unidades ────────────────────────────────────────────────────────────────
+// Unidade padrão = a de menor "ordem" (Joinville América). Equipe sem unidade
+// e vendedor sem equipe contam como a padrão.
+export const unidadePadraoId = (unidades) =>
+  [...(unidades || [])].sort((a, b) => (a.ordem ?? 100) - (b.ordem ?? 100))[0]?.id ?? null
+
+// Filtra equipes, vendedores e vendas pela unidade escolhida.
+// unidadeId 'todas' (ou sem unidades cadastradas) devolve tudo.
+export const filtrarPorUnidade = ({ unidades, equipes, vendedores, vendas, unidadeId }) => {
+  if (!unidadeId || unidadeId === 'todas' || !unidades?.length) return { equipes, vendedores, vendas }
+  const padrao = unidadePadraoId(unidades)
+  const unidadeDaEquipe = {}
+  for (const e of equipes) unidadeDaEquipe[e.id] = e.unidade_id || padrao
+  const doVendedor = (vend) => (vend?.equipe_id && unidadeDaEquipe[vend.equipe_id]) || padrao
+  const vendsOk = vendedores.filter(v => doVendedor(v) === unidadeId)
+  const idsOk = new Set(vendsOk.map(v => v.id))
+  const vendedorExiste = new Set(vendedores.map(v => v.id))
+  return {
+    equipes:    equipes.filter(e => unidadeDaEquipe[e.id] === unidadeId),
+    vendedores: vendsOk,
+    // Venda de vendedor que não existe mais conta como da unidade padrão
+    vendas:     vendas.filter(v => idsOk.has(v.vendedor_id) || (!vendedorExiste.has(v.vendedor_id) && unidadeId === padrao)),
+  }
+}
+
+// 'Santo Antônio' -> 'santo-antonio' (usado no link ?unidade=)
+export const slugUnidade = (nome) => normalizarBusca(nome).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')

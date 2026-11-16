@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { sb } from '../lib/supabase'
 import useStore, { limparCache } from '../store/useStore'
@@ -9,7 +9,27 @@ import EquipesTab from '../components/dashboard/EquipesTab'
 import EquipesSemanaTab from '../components/dashboard/EquipesSemanaTab'
 import CelebracaoCard from '../components/dashboard/CelebracaoCard'
 import KeepAwake from '../components/dashboard/KeepAwake'
-import { getDiaFechamento, filtrarVendasDoDia } from '../lib/utils'
+import { getDiaFechamento, filtrarVendasDoDia, filtrarPorUnidade, unidadePadraoId, slugUnidade } from '../lib/utils'
+
+// Unidade escolhida fica salva no navegador; o link ?unidade=santo-antonio
+// (ou ?unidade=todas) tem prioridade e fixa a unidade daquela tela.
+const UNIDADE_KEY = 'dash_unidade'
+const lerUnidadeInicial = () => {
+  try {
+    const daUrl = new URLSearchParams(window.location.search).get('unidade')
+    if (daUrl) return daUrl
+    return localStorage.getItem(UNIDADE_KEY) || ''
+  } catch { return '' }
+}
+// Converte o valor salvo/da URL ('todas', id ou slug) no id da unidade.
+// Sem correspondência → unidade padrão (Joinville América).
+const resolverUnidade = (raw, unidades) => {
+  if (!unidades.length) return 'todas'
+  if (raw === 'todas') return 'todas'
+  const achou = unidades.find(u => u.id === raw)
+    || (raw && unidades.find(u => slugUnidade(u.nome) === raw || slugUnidade(u.nome).includes(raw)))
+  return achou ? achou.id : unidadePadraoId(unidades)
+}
 
 const TABS = [
   { id:'vendedores', label:'Vendedores' },
@@ -29,7 +49,7 @@ function Spinner() {
 export default function Dashboard() {
   const {
     meta, metaFechamento, semanaFechamento,
-    vendedores, equipes, vendas,
+    vendedores, equipes, vendas, unidades,
     mes, loading,
     modoFechamento, setModoFechamento,
     carregarDados, setMes,
@@ -40,6 +60,17 @@ export default function Dashboard() {
   const [tab,              setTab]              = useState('vendedores')
   const [celebracao,       setCelebracao]       = useState(null)
   const [agora,            setAgora]            = useState(() => new Date())
+  const [unidadeRaw,       setUnidadeRaw]       = useState(lerUnidadeInicial)
+
+  const unidadeId = resolverUnidade(unidadeRaw, unidades)
+  // O canal ao vivo é criado uma vez só: lê a unidade atual por ref
+  const unidadeRef = useRef(unidadeId)
+  useEffect(() => { unidadeRef.current = unidadeId }, [unidadeId])
+
+  const escolherUnidade = (id) => {
+    setUnidadeRaw(id)
+    try { localStorage.setItem(UNIDADE_KEY, id) } catch { /* sem storage, vale só nesta aba */ }
+  }
 
   // Relógio de minuto em minuto: faz o dia do fechamento virar sozinho na tela
   useEffect(() => {
@@ -87,9 +118,19 @@ export default function Dashboard() {
         // O card compara com metaAtiva, que no modo Fechamento é a meta do DIA —
         // então o total tem que ser o do dia também, senão a barra vive em 100%.
         // Recalcula o dia aqui porque o closure do canal é criado uma vez só.
-        const vendasDoTotal = st.modoFechamento
+        const vendasDoPeriodo = st.modoFechamento
           ? filtrarVendasDoDia(st.vendas, getDiaFechamento())
           : st.vendas
+        // Só comemora venda da unidade que está na tela, e o total é o da unidade
+        const { vendas: vendasDoTotal } = filtrarPorUnidade({
+          unidades: st.unidades, equipes: st.equipes, vendedores: st.vendedores,
+          vendas: vendasDoPeriodo, unidadeId: unidadeRef.current,
+        })
+        const daUnidade = filtrarPorUnidade({
+          unidades: st.unidades, equipes: st.equipes, vendedores: st.vendedores,
+          vendas: [novaVenda], unidadeId: unidadeRef.current,
+        }).vendas.length > 0
+        if (!daUnidade) return
         const totalAtual = vendasDoTotal.reduce((a, b) => a + Number(b.valor), 0)
         setCelebracao({ venda: novaVenda, vendedor: vend, equipe: eq, totalAtual })
       })
@@ -134,9 +175,16 @@ export default function Dashboard() {
 
   // Filtro de vendas: no modo fechamento mostra só as vendas do dia do fechamento
   const diaFechamento  = getDiaFechamento(agora)
-  const vendasVisiveis = modoFechamento
+  const vendasDoPeriodo = modoFechamento
     ? filtrarVendasDoDia(vendas, diaFechamento)
     : vendas
+  // Filtro de unidade: vale pras abas Vendedores/Equipes, totais e meta.
+  // A aba Semana do Fechamento continua com todas as unidades.
+  const {
+    equipes: equipesVisiveis,
+    vendedores: vendedoresVisiveis,
+    vendas: vendasVisiveis,
+  } = filtrarPorUnidade({ unidades, equipes, vendedores, vendas: vendasDoPeriodo, unidadeId })
 
   // Depois da meia-noite o dia do fechamento pode cair no mês anterior:
   // garante que as vendas carregadas sejam as do mês desse dia
@@ -205,6 +253,17 @@ export default function Dashboard() {
 
         {/* Toggle Dia-Dia / Fechamento + categorias + mês */}
         <div className="ml-auto flex items-center gap-4 pb-2">
+
+          {/* Unidade — some se a tabela de unidades ainda não existir */}
+          {unidades.length > 0 && (
+            <select value={unidadeId} onChange={e => escolherUnidade(e.target.value)}
+              title="Unidade"
+              className="rounded-lg px-3 py-1.5 font-cond font-bold text-xs tracking-[1.5px] uppercase outline-none border cursor-pointer"
+              style={{ background:'#111', color:'#fff', borderColor: unidadeId === 'todas' ? 'rgba(255,255,255,0.1)' : 'rgba(232,0,13,0.45)' }}>
+              <option value="todas">Todas as unidades</option>
+              {unidades.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+            </select>
+          )}
 
           {/* Toggle */}
           <div className="flex items-center rounded-lg overflow-hidden border"
@@ -295,8 +354,8 @@ export default function Dashboard() {
             style={{ background:'#080808' }}
             initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
             transition={{ duration:0.5, ease:'easeInOut' }}>
-            {tab === 'vendedores' && <VendedoresTab vendedores={vendedores} vendas={vendasVisiveis} equipes={equipes} modoFechamento={modoFechamento} />}
-            {tab === 'equipes'    && <EquipesTab equipes={equipes} vendedores={vendedores} vendas={vendasVisiveis} modoFechamento={modoFechamento} />}
+            {tab === 'vendedores' && <VendedoresTab vendedores={vendedoresVisiveis} vendas={vendasVisiveis} equipes={equipesVisiveis} modoFechamento={modoFechamento} />}
+            {tab === 'equipes'    && <EquipesTab equipes={equipesVisiveis} vendedores={vendedoresVisiveis} vendas={vendasVisiveis} modoFechamento={modoFechamento} />}
             {tab === 'semana'     && <EquipesSemanaTab equipes={equipes} vendedores={vendedores} vendas={vendas} semanaFechamento={semanaFechamento} />}
           </motion.div>
         </AnimatePresence>
