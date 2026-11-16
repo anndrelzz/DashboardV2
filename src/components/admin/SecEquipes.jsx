@@ -16,6 +16,8 @@ export default function SecEquipes({ equipes, vendedores, vendas, unidades = [],
   const [savingUni, setSavingUni] = useState(false)
 
   const temUnidades = unidades.length > 0
+  // Coluna gestor_id só existe depois do SQL sql/2026-11-gestor-equipe.sql
+  const temGestor   = equipes.some(e => 'gestor_id' in e)
   const padraoId    = unidadePadraoId(unidades)
   const nomeUni     = id => unidades.find(u => u.id === id)?.nome
 
@@ -38,6 +40,14 @@ export default function SecEquipes({ equipes, vendedores, vendas, unidades = [],
     if (!data?.length) { toast('O banco não deixou alterar a equipe (permissão de update)', false); return }
     await onRefresh()
     toast('Unidade atualizada')
+  }
+
+  const trocarGestor = async (equipeId, vendedorId) => {
+    const { data, error } = await sb.from('equipes').update({ gestor_id: vendedorId || null }).eq('id', equipeId).select('id')
+    if (error) { console.error(error); toast(`Erro ao definir o gestor: ${error.message}`, false); return }
+    if (!data?.length) { toast('O banco não deixou alterar a equipe (permissão de update)', false); return }
+    await onRefresh()
+    toast(vendedorId ? 'Gestor definido' : 'Equipe sem gestor')
   }
 
   const remover = async (id) => {
@@ -112,7 +122,7 @@ export default function SecEquipes({ equipes, vendedores, vendas, unidades = [],
         <table className="w-full">
           <thead>
             <tr style={{ background:'#1c1c1c' }}>
-              {['Nome da Equipe', ...(temUnidades ? ['Unidade'] : []), 'Membros','Total no Mês',''].map(h => (
+              {['Nome da Equipe', ...(temUnidades ? ['Unidade'] : []), ...(temGestor ? ['Gestor'] : []), 'Membros','Total no Mês',''].map(h => (
                 <th key={h} className="text-left px-6 py-3.5 text-[10.5px] font-bold tracking-[2px] uppercase text-muted border-b"
                   style={{ borderColor:'rgba(255,255,255,0.07)' }}>{h}</th>
               ))}
@@ -120,7 +130,7 @@ export default function SecEquipes({ equipes, vendedores, vendas, unidades = [],
           </thead>
           <tbody>
             {equipes.length === 0 ? (
-              <tr><td colSpan={5} className="text-center py-14 text-muted text-[13px] tracking-wider uppercase">Nenhuma equipe cadastrada</td></tr>
+              <tr><td colSpan={6} className="text-center py-14 text-muted text-[13px] tracking-wider uppercase">Nenhuma equipe cadastrada</td></tr>
             ) : equipes.map(e => {
               const membros = vendedores.filter(v => v.equipe_id === e.id)
               const total   = vendas.filter(v => membros.find(m => m.id === v.vendedor_id)).reduce((a,b) => a+Number(b.valor), 0)
@@ -135,6 +145,20 @@ export default function SecEquipes({ equipes, vendedores, vendas, unidades = [],
                         style={inputBg}>
                         <option value="">{nomeUni(padraoId)} (padrão)</option>
                         {unidades.filter(u => u.id !== padraoId).map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+                      </select>
+                    </td>
+                  )}
+                  {temGestor && (
+                    <td className="px-6 py-3">
+                      <select value={e.gestor_id || ''} onChange={ev => trocarGestor(e.id, ev.target.value)}
+                        className="rounded-lg px-3 py-1.5 text-[13px] outline-none border border-white/10 focus:border-red/40 max-w-[220px]"
+                        style={{ ...inputBg, color: e.gestor_id ? '#fff' : 'rgba(255,255,255,0.4)' }}>
+                        <option value="">Sem gestor</option>
+                        {membros.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                        {/* gestor que saiu da equipe continua aparecendo até trocar */}
+                        {e.gestor_id && !membros.some(m => m.id === e.gestor_id) && vendedores.find(v => v.id === e.gestor_id) && (
+                          <option value={e.gestor_id}>{vendedores.find(v => v.id === e.gestor_id).nome} (outra equipe)</option>
+                        )}
                       </select>
                     </td>
                   )}

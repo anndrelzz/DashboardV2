@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { toISODateLocal, getDiaFechamento, getMes, normalizarBusca, compararConferencia, fmt, diasEntre, fmtDiaMes, filtrarVendasSemana, filtrarVendasDoDia, pctMeta, fmtMesLabel, somarMes, fmtDataBR, unidadePadraoId, filtrarPorUnidade, slugUnidade } from './utils'
+import { toISODateLocal, getDiaFechamento, getMes, normalizarBusca, compararConferencia, fmt, diasEntre, fmtDiaMes, filtrarVendasSemana, filtrarVendasDoDia, pctMeta, fmtMesLabel, somarMes, fmtDataBR, unidadePadraoId, filtrarPorUnidade, slugUnidade, idsGestores, filtrarRanking } from './utils'
 
 describe('toISODateLocal', () => {
   it('formata com zero à esquerda', () => {
@@ -241,4 +241,14 @@ describe('filtrarPorUnidade', () => {
     expect(slugUnidade('Santo Antônio')).toBe('santo-antonio')
     expect(slugUnidade('Jardins SP')).toBe('jardins-sp')
   })
+})
+
+describe('filtrarRanking', () => {
+  const equipes = [{ id:'e1', gestor_id:'a' }, { id:'e2', gestor_id:null }, { id:'e3', gestor_id:'a' }]
+  const vends = [{ id:'a' }, { id:'b' }, { id:'c' }]
+  const g = idsGestores(equipes)
+  it('gestor de duas equipes conta uma vez', () => expect([...g]).toEqual(['a']))
+  it('todos', () => expect(filtrarRanking(vends, 'todos', g)).toHaveLength(3))
+  it('gestores', () => expect(filtrarRanking(vends, 'gestores', g).map(v => v.id)).toEqual(['a']))
+  it('aut./prévias', () => expect(filtrarRanking(vends, 'vendedores', g).map(v => v.id)).toEqual(['b', 'c']))
 })

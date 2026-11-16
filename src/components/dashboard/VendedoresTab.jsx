@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Chart, CategoryScale, LinearScale, BarElement, BarController, Tooltip, Legend } from 'chart.js'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
-import { fmt, MEDALS } from '../../lib/utils'
+import { fmt, MEDALS, filtrarRanking } from '../../lib/utils'
 
 Chart.register(CategoryScale, LinearScale, BarElement, BarController, Tooltip, Legend, ChartDataLabels)
 
@@ -60,7 +60,13 @@ function RankItem({ item, index, maxVal, modoFechamento }) {
   )
 }
 
-export default function VendedoresTab({ vendedores, vendas, modoFechamento }) {
+const FILTROS_RANKING = [
+  { id:'todos',      label:'Todos',        titulo:'Vendedores' },
+  { id:'gestores',   label:'Gestores',     titulo:'Gestores' },
+  { id:'vendedores', label:'Aut./Prévias', titulo:'Aut./Prévias' },
+]
+
+export default function VendedoresTab({ vendedores, vendas, modoFechamento, gestorIds = new Set(), filtroRanking = 'todos', onFiltroRanking }) {
   const chartRef = useRef(null)
   const chartObj = useRef(null)
 
@@ -72,12 +78,19 @@ export default function VendedoresTab({ vendedores, vendas, modoFechamento }) {
     else                                                   tVI[v.vendedor_id] = (tVI[v.vendedor_id]||0) + Number(v.valor)
   })
 
-  const sorted = Object.entries(tV)
+  const todos = Object.entries(tV)
     .map(([id, val]) => ({ id, val, v: vendedores.find(x => x.id === id) }))
     .filter(x => x.v)
     .sort((a, b) => b.val - a.val)
 
-  const totalGeral = sorted.reduce((a, x) => a + x.val, 0)
+  // Total Geral é sempre de todos; o filtro Gestores x Aut./Prévias só muda
+  // quem aparece no Top 10 e no gráfico. Sem gestor marcado, não há filtro.
+  const temGestores = gestorIds.size > 0
+  const filtro      = temGestores ? filtroRanking : 'todos'
+  const sorted = filtrarRanking(todos, filtro, gestorIds)
+  const tituloFiltro = FILTROS_RANKING.find(f => f.id === filtro)?.titulo || 'Vendedores'
+
+  const totalGeral = todos.reduce((a, x) => a + x.val, 0)
   const maxVal     = sorted[0]?.val || 1
 
   // Chave que só muda quando os valores realmente mudam, pra não recriar o gráfico a cada render
@@ -250,7 +263,22 @@ export default function VendedoresTab({ vendedores, vendas, modoFechamento }) {
       <div className="flex flex-col gap-3 min-h-0">
         <div className="flex items-center gap-2">
           <div className="w-[3px] h-4 rounded-full flex-shrink-0" style={{ background: accentColor }} />
-          <span className="font-bebas text-[12px] tracking-[3px] text-muted uppercase">Top 10 Vendedores</span>
+          <span className="font-bebas text-[12px] tracking-[3px] text-muted uppercase">Top 10 {tituloFiltro}</span>
+          {temGestores && onFiltroRanking && (
+            <div className="ml-auto flex items-center rounded-md overflow-hidden border"
+              style={{ borderColor:'rgba(255,255,255,0.1)', background:'#111' }}>
+              {FILTROS_RANKING.map(f => (
+                <button key={f.id} onClick={() => onFiltroRanking(f.id)}
+                  className="px-2 py-1 font-cond font-bold text-[10px] tracking-[1px] uppercase transition-all"
+                  style={{
+                    background: filtro === f.id ? (modoFechamento ? 'linear-gradient(90deg,#C04400,#FF6600)' : 'rgba(232,0,13,0.8)') : 'transparent',
+                    color: filtro === f.id ? '#fff' : 'rgba(255,255,255,0.4)',
+                  }}>
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-hidden rounded-2xl p-3 flex flex-col gap-2" style={cardStyle}>
@@ -270,7 +298,7 @@ export default function VendedoresTab({ vendedores, vendas, modoFechamento }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-[3px] h-4 rounded-full flex-shrink-0" style={{ background: accentColor }} />
-            <span className="font-bebas text-[12px] tracking-[3px] text-muted uppercase">Ranking — Todos os Vendedores</span>
+            <span className="font-bebas text-[12px] tracking-[3px] text-muted uppercase">Ranking — {filtro === 'todos' ? 'Todos os Vendedores' : tituloFiltro}</span>
           </div>
           <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.3 }}
             className="flex flex-col items-end">

@@ -154,3 +154,15 @@ export const filtrarPorUnidade = ({ unidades, equipes, vendedores, vendas, unida
 
 // 'Santo Antônio' -> 'santo-antonio' (usado no link ?unidade=)
 export const slugUnidade = (nome) => normalizarBusca(nome).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+// ── Ranking: Gestores x Aut./Prévias ────────────────────────────────────────
+// Gestor = vendedor marcado como gestor_id de alguma equipe (Admin > Equipes)
+export const idsGestores = (equipes) =>
+  new Set((equipes || []).map(e => e.gestor_id).filter(Boolean))
+
+// filtro: 'todos' | 'gestores' | 'vendedores' (Aut./Prévias = quem não é gestor)
+export const filtrarRanking = (vendedores, filtro, gestores) => {
+  if (filtro === 'gestores')   return vendedores.filter(v => gestores.has(v.id))
+  if (filtro === 'vendedores') return vendedores.filter(v => !gestores.has(v.id))
+  return vendedores
+}

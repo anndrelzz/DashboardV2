@@ -9,7 +9,19 @@ import EquipesTab from '../components/dashboard/EquipesTab'
 import EquipesSemanaTab from '../components/dashboard/EquipesSemanaTab'
 import CelebracaoCard from '../components/dashboard/CelebracaoCard'
 import KeepAwake from '../components/dashboard/KeepAwake'
-import { getDiaFechamento, filtrarVendasDoDia, filtrarPorUnidade, unidadePadraoId, slugUnidade } from '../lib/utils'
+import { getDiaFechamento, filtrarVendasDoDia, filtrarPorUnidade, unidadePadraoId, slugUnidade, idsGestores } from '../lib/utils'
+
+// Filtro do ranking da aba Vendedores: 'todos' | 'gestores' | 'vendedores' (Aut./Prévias).
+// Salvo no navegador; ?ranking=gestores | aut-previas | todos tem prioridade.
+const RANKING_KEY = 'dash_ranking'
+const lerRankingInicial = () => {
+  try {
+    const daUrl = new URLSearchParams(window.location.search).get('ranking')
+    const raw = daUrl || localStorage.getItem(RANKING_KEY) || 'todos'
+    if (raw === 'aut-previas' || raw === 'vendedores') return 'vendedores'
+    return raw === 'gestores' ? 'gestores' : 'todos'
+  } catch { return 'todos' }
+}
 
 // Unidade escolhida fica salva no navegador; o link ?unidade=santo-antonio
 // (ou ?unidade=todas) tem prioridade e fixa a unidade daquela tela.
@@ -66,6 +78,14 @@ export default function Dashboard() {
   // O canal ao vivo é criado uma vez só: lê a unidade atual por ref
   const unidadeRef = useRef(unidadeId)
   useEffect(() => { unidadeRef.current = unidadeId }, [unidadeId])
+
+  const [filtroRanking, setFiltroRanking] = useState(lerRankingInicial)
+  const escolherRanking = (f) => {
+    setFiltroRanking(f)
+    try { localStorage.setItem(RANKING_KEY, f) } catch { /* sem storage, vale só nesta aba */ }
+  }
+  // Gestores vêm de todas as equipes (independente da unidade na tela)
+  const gestorIds = idsGestores(equipes)
 
   const escolherUnidade = (id) => {
     setUnidadeRaw(id)
@@ -354,7 +374,8 @@ export default function Dashboard() {
             style={{ background:'#080808' }}
             initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
             transition={{ duration:0.5, ease:'easeInOut' }}>
-            {tab === 'vendedores' && <VendedoresTab vendedores={vendedoresVisiveis} vendas={vendasVisiveis} equipes={equipesVisiveis} modoFechamento={modoFechamento} />}
+            {tab === 'vendedores' && <VendedoresTab vendedores={vendedoresVisiveis} vendas={vendasVisiveis} equipes={equipesVisiveis} modoFechamento={modoFechamento}
+              gestorIds={gestorIds} filtroRanking={filtroRanking} onFiltroRanking={escolherRanking} />}
             {tab === 'equipes'    && <EquipesTab equipes={equipesVisiveis} vendedores={vendedoresVisiveis} vendas={vendasVisiveis} modoFechamento={modoFechamento} />}
             {tab === 'semana'     && <EquipesSemanaTab equipes={equipes} vendedores={vendedores} vendas={vendas} semanaFechamento={semanaFechamento} />}
           </motion.div>
