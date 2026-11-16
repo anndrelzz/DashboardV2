@@ -1,14 +1,32 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { sb } from '../../lib/supabase'
 import { fmt, unidadePadraoId } from '../../lib/utils'
 import { toast } from '../../lib/toast'
+import { excluirVenda } from '../../lib/excluirVenda'
 import SectionHeader from './SectionHeader'
+import MesSelector from './MesSelector'
+import EquipeDetalhe from './EquipeDetalhe'
+import EditarVendaModal from './EditarVendaModal'
+import NovaVendaModal from './NovaVendaModal'
 import { IconEquipes, IconTrash } from './icons'
 
 const inputCls = "rounded-lg px-4 py-2.5 text-white text-sm outline-none border border-white/10 focus:border-red/40 transition-colors"
 const inputBg  = { background:'#1F1F1F' }
 
-export default function SecEquipes({ equipes, vendedores, vendas, unidades = [], onRefresh }) {
+export default function SecEquipes({ equipes, vendedores, unidades = [], mesAtual, consulta }) {
+  // Vendas do mês escolhido no seletor (padrão: mês atual). recarregar atualiza
+  // o store (equipes, unidades...) e o mês que estiver na tela.
+  const { vendas, mes, trocarMes, loading: loadingMes, recarregar: onRefresh } = consulta
+
+  const [abertas, setAbertas]           = useState(() => new Set())
+  const [vendaEditando, setVendaEditando] = useState(null)
+  const [novaVendaPara, setNovaVendaPara] = useState(null)
+  const alternar = (id) => setAbertas(prev => {
+    const n = new Set(prev)
+    if (n.has(id)) n.delete(id); else n.add(id)
+    return n
+  })
+
   const [nome, setNome]       = useState('')
   const [uniId, setUniId]     = useState('')
   const [saving, setSaving]   = useState(false)
@@ -116,30 +134,40 @@ export default function SecEquipes({ equipes, vendedores, vendas, unidades = [],
       </div>
 
       <div className="rounded-2xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.07)' }}>
-        <div className="px-6 py-4.5 border-b" style={{ borderColor:'rgba(255,255,255,0.07)' }}>
+        <div className="px-6 py-4.5 border-b flex items-center justify-between gap-4" style={{ borderColor:'rgba(255,255,255,0.07)' }}>
           <span className="font-cond font-bold text-sm tracking-[2px] uppercase">Lista de Equipes</span>
+          <MesSelector mes={mes} mesAtual={mesAtual} onChange={trocarMes} loading={loadingMes} />
         </div>
         <table className="w-full">
           <thead>
             <tr style={{ background:'#1c1c1c' }}>
-              {['Nome da Equipe', ...(temUnidades ? ['Unidade'] : []), ...(temGestor ? ['Gestor'] : []), 'Membros','Total no Mês',''].map(h => (
-                <th key={h} className="text-left px-6 py-3.5 text-[10.5px] font-bold tracking-[2px] uppercase text-muted border-b"
+              {['', 'Nome da Equipe', ...(temUnidades ? ['Unidade'] : []), ...(temGestor ? ['Gestor'] : []), 'Membros','Total no Mês',''].map((h, i) => (
+                <th key={i} className="text-left px-6 py-3.5 text-[10.5px] font-bold tracking-[2px] uppercase text-muted border-b"
                   style={{ borderColor:'rgba(255,255,255,0.07)' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {equipes.length === 0 ? (
-              <tr><td colSpan={6} className="text-center py-14 text-muted text-[13px] tracking-wider uppercase">Nenhuma equipe cadastrada</td></tr>
+              <tr><td colSpan={7} className="text-center py-14 text-muted text-[13px] tracking-wider uppercase">Nenhuma equipe cadastrada</td></tr>
             ) : equipes.map(e => {
               const membros = vendedores.filter(v => v.equipe_id === e.id)
-              const total   = vendas.filter(v => membros.find(m => m.id === v.vendedor_id)).reduce((a,b) => a+Number(b.valor), 0)
+              const idsMembros = new Set(membros.map(m => m.id))
+              const total   = vendas.filter(v => idsMembros.has(v.vendedor_id)).reduce((a,b) => a+Number(b.valor), 0)
+              const aberta  = abertas.has(e.id)
+              const colunas = 5 + (temUnidades ? 1 : 0) + (temGestor ? 1 : 0)
               return (
-                <tr key={e.id} className="border-b last:border-0 hover:bg-white/[0.02] transition-colors"
+                <Fragment key={e.id}>
+                <tr onClick={() => alternar(e.id)} title={aberta ? 'Fechar integrantes' : 'Ver integrantes e vendas do mês'}
+                  className={`border-b cursor-pointer transition-colors ${aberta ? 'bg-white/[0.03]' : 'hover:bg-white/[0.02]'}`}
                   style={{ borderColor:'rgba(255,255,255,0.05)' }}>
+                  <td className="pl-6 pr-0 py-3.5 w-8">
+                    <span className="inline-block text-muted text-[11px] transition-transform duration-200"
+                      style={{ transform: aberta ? 'rotate(90deg)' : 'none' }}>▶</span>
+                  </td>
                   <td className="px-6 py-3.5 text-[13.5px] font-semibold">{e.nome}</td>
                   {temUnidades && (
-                    <td className="px-6 py-3">
+                    <td className="px-6 py-3" onClick={ev => ev.stopPropagation()}>
                       <select value={e.unidade_id || ''} onChange={ev => trocarUnidade(e.id, ev.target.value)}
                         className="rounded-lg px-3 py-1.5 text-white text-[13px] outline-none border border-white/10 focus:border-red/40"
                         style={inputBg}>
@@ -149,7 +177,7 @@ export default function SecEquipes({ equipes, vendedores, vendas, unidades = [],
                     </td>
                   )}
                   {temGestor && (
-                    <td className="px-6 py-3">
+                    <td className="px-6 py-3" onClick={ev => ev.stopPropagation()}>
                       <select value={e.gestor_id || ''} onChange={ev => trocarGestor(e.id, ev.target.value)}
                         className="rounded-lg px-3 py-1.5 text-[13px] outline-none border border-white/10 focus:border-red/40 max-w-[220px]"
                         style={{ ...inputBg, color: e.gestor_id ? '#fff' : 'rgba(255,255,255,0.4)' }}>
@@ -164,7 +192,7 @@ export default function SecEquipes({ equipes, vendedores, vendas, unidades = [],
                   )}
                   <td className="px-6 py-3.5 text-[13px] text-muted">{membros.length} membro(s)</td>
                   <td className="px-6 py-3.5 font-bebas text-[15px] text-red">{fmt(total)}</td>
-                  <td className="px-6 py-3.5">
+                  <td className="px-6 py-3.5" onClick={ev => ev.stopPropagation()}>
                     <button onClick={() => remover(e.id)}
                       className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11px] font-bold tracking-wide border text-red border-red/20 hover:bg-red/10 transition-colors"
                       style={{background:'rgba(239,68,68,0.06)'}}>
@@ -172,11 +200,27 @@ export default function SecEquipes({ equipes, vendedores, vendas, unidades = [],
                     </button>
                   </td>
                 </tr>
+                {aberta && (
+                  <tr className="border-b" style={{ borderColor:'rgba(255,255,255,0.05)' }}>
+                    <td colSpan={colunas} className="px-6 pb-5 pt-1" style={{ background:'rgba(255,255,255,0.03)' }}>
+                      <EquipeDetalhe equipe={e} membros={membros} vendas={vendas} mes={mes}
+                        onEditar={setVendaEditando}
+                        onExcluir={id => excluirVenda(id, onRefresh)}
+                        onNovaVenda={setNovaVendaPara} />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               )
             })}
           </tbody>
         </table>
       </div>
+
+      <EditarVendaModal venda={vendaEditando} vendedores={vendedores}
+        onClose={() => setVendaEditando(null)} onSaved={onRefresh} />
+      <NovaVendaModal vendedor={novaVendaPara}
+        onClose={() => setNovaVendaPara(null)} onSaved={onRefresh} />
 
       {/* Unidades */}
       <div className="rounded-2xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.07)' }}>

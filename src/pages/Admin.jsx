@@ -78,7 +78,7 @@ export default function Admin() {
         {section === 'meta'        && <SecMeta metaFechamento={metaFechamento} onRefresh={refresh} />}
         {section === 'vendas'      && <SecVendas {...secProps} mesAtual={mes} consulta={consulta} />}
         {section === 'vendedores'  && <SecVendedores {...secProps} mesAtual={mes} consulta={consulta} />}
-        {section === 'equipes'     && <SecEquipes {...secProps} unidades={unidades} />}
+        {section === 'equipes'     && <SecEquipes {...secProps} unidades={unidades} mesAtual={mes} consulta={consulta} />}
         {section === 'conferencia' && <SecConferencia {...secProps} />}
         {section === 'semana'      && <SecRankingSemana {...secProps} semanaFechamento={semanaFechamento} />}
       </div>
