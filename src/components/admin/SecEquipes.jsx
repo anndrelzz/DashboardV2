@@ -10,7 +10,7 @@ import EditarVendaModal from './EditarVendaModal'
 import NovaVendaModal from './NovaVendaModal'
 import EditarVendedorModal from './EditarVendedorModal'
 import AdicionarIntegranteModal from './AdicionarIntegranteModal'
-import { IconEquipes, IconTrash } from './icons'
+import { IconEquipes, IconTrash, IconEdit, IconCheck, IconX } from './icons'
 
 const inputCls = "rounded-lg px-4 py-2.5 text-white text-sm outline-none border border-white/10 focus:border-red/40 transition-colors"
 const inputBg  = { background:'#1F1F1F' }
@@ -25,6 +25,20 @@ export default function SecEquipes({ equipes, vendedores, unidades = [], mesAtua
   const [novaVendaPara, setNovaVendaPara] = useState(null)
   const [vendedorEditando, setVendedorEditando] = useState(null)
   const [adicionarEm, setAdicionarEm] = useState(null) // equipe recebendo integrante
+  const [renomeandoId, setRenomeandoId] = useState(null)
+  const [nomeEdit, setNomeEdit]         = useState('')
+
+  const salvarNome = async (equipe) => {
+    const novo = nomeEdit.trim()
+    if (!novo) { toast('Informe o nome', false); return }
+    if (novo === equipe.nome) { setRenomeandoId(null); return }
+    const { data, error } = await sb.from('equipes').update({ nome: novo }).eq('id', equipe.id).select('id')
+    if (error) { toast(error.code === '23505' ? 'Já existe uma equipe com esse nome' : 'Erro ao renomear a equipe', false); return }
+    if (!data?.length) { toast('O banco não deixou alterar a equipe (permissão de update)', false); return }
+    setRenomeandoId(null)
+    await onRefresh()
+    toast('Nome da equipe atualizado')
+  }
   const alternar = (id) => setAbertas(prev => {
     const n = new Set(prev)
     if (n.has(id)) n.delete(id); else n.add(id)
@@ -169,7 +183,29 @@ export default function SecEquipes({ equipes, vendedores, unidades = [], mesAtua
                     <span className="inline-block text-muted text-[11px] transition-transform duration-200"
                       style={{ transform: aberta ? 'rotate(90deg)' : 'none' }}>▶</span>
                   </td>
-                  <td className="px-6 py-3.5 text-[13.5px] font-semibold">{e.nome}</td>
+                  <td className="px-6 py-3 text-[13.5px] font-semibold">
+                    {renomeandoId === e.id ? (
+                      <div className="flex items-center gap-1.5" onClick={ev => ev.stopPropagation()}>
+                        <input type="text" autoFocus value={nomeEdit} onChange={ev => setNomeEdit(ev.target.value)}
+                          onKeyDown={ev => { if (ev.key === 'Enter') salvarNome(e); if (ev.key === 'Escape') setRenomeandoId(null) }}
+                          className="rounded-md px-2.5 py-1 text-white text-[13px] outline-none border border-red/40 w-44"
+                          style={inputBg} />
+                        <button onClick={() => salvarNome(e)} title="Salvar (Enter)"
+                          className="w-7 h-7 flex items-center justify-center rounded-md text-[#22C55E] border border-[#22C55E]/30 hover:bg-[#22C55E]/10"><IconCheck size={14} /></button>
+                        <button onClick={() => setRenomeandoId(null)} title="Cancelar (Esc)"
+                          className="w-7 h-7 flex items-center justify-center rounded-md text-muted border border-white/15 hover:text-white"><IconX size={14} /></button>
+                      </div>
+                    ) : (
+                      <span className="inline-flex items-center gap-2 group">
+                        {e.nome}
+                        <button onClick={ev => { ev.stopPropagation(); setRenomeandoId(e.id); setNomeEdit(e.nome) }}
+                          title="Renomear equipe"
+                          className="w-6 h-6 flex items-center justify-center rounded text-muted opacity-40 group-hover:opacity-100 hover:text-white hover:bg-white/10 transition-all">
+                          <IconEdit size={12} />
+                        </button>
+                      </span>
+                    )}
+                  </td>
                   {temUnidades && (
                     <td className="px-6 py-3" onClick={ev => ev.stopPropagation()}>
                       <select value={e.unidade_id || ''} onChange={ev => trocarUnidade(e.id, ev.target.value)}

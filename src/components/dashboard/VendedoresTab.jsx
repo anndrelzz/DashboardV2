@@ -60,10 +60,10 @@ function RankItem({ item, index, maxVal, modoFechamento }) {
   )
 }
 
+// Dois botões liga/desliga: clicar no que já está ativo volta pra "todos"
 const FILTROS_RANKING = [
-  { id:'todos',      label:'Todos',        titulo:'Vendedores' },
-  { id:'gestores',   label:'Gestores',     titulo:'Gestores' },
-  { id:'vendedores', label:'Aut./Prévias', titulo:'Aut./Prévias' },
+  { id:'gestores',   label:'Gestores',      titulo:'Gestores' },
+  { id:'vendedores', label:'Aut. | Prévia', titulo:'Aut. | Prévia' },
 ]
 
 export default function VendedoresTab({ vendedores, vendas, modoFechamento, gestorIds = new Set(), filtroRanking = 'todos', onFiltroRanking }) {
@@ -263,20 +263,24 @@ export default function VendedoresTab({ vendedores, vendas, modoFechamento, gest
       <div className="flex flex-col gap-3 min-h-0">
         <div className="flex items-center gap-2">
           <div className="w-[3px] h-4 rounded-full flex-shrink-0" style={{ background: accentColor }} />
-          <span className="font-bebas text-[12px] tracking-[3px] text-muted uppercase">Top 10 {tituloFiltro}</span>
+          <span className="font-bebas text-[12px] tracking-[3px] text-muted uppercase whitespace-nowrap">Top 10 {tituloFiltro}</span>
           {temGestores && onFiltroRanking && (
-            <div className="ml-auto flex items-center rounded-md overflow-hidden border"
-              style={{ borderColor:'rgba(255,255,255,0.1)', background:'#111' }}>
-              {FILTROS_RANKING.map(f => (
-                <button key={f.id} onClick={() => onFiltroRanking(f.id)}
-                  className="px-2 py-1 font-cond font-bold text-[10px] tracking-[1px] uppercase transition-all"
-                  style={{
-                    background: filtro === f.id ? (modoFechamento ? 'linear-gradient(90deg,#C04400,#FF6600)' : 'rgba(232,0,13,0.8)') : 'transparent',
-                    color: filtro === f.id ? '#fff' : 'rgba(255,255,255,0.4)',
-                  }}>
-                  {f.label}
-                </button>
-              ))}
+            <div className="ml-auto flex items-center gap-1 flex-shrink-0">
+              {FILTROS_RANKING.map(f => {
+                const ativo = filtro === f.id
+                return (
+                  <button key={f.id} onClick={() => onFiltroRanking(ativo ? 'todos' : f.id)}
+                    title={ativo ? 'Clique de novo pra mostrar todos' : `Mostrar só ${f.titulo}`}
+                    className="px-2 py-1 rounded-md border font-cond font-bold text-[10px] tracking-[0.5px] uppercase whitespace-nowrap transition-all"
+                    style={{
+                      background: ativo ? (modoFechamento ? 'linear-gradient(90deg,#C04400,#FF6600)' : 'rgba(232,0,13,0.8)') : '#111',
+                      borderColor: ativo ? 'transparent' : 'rgba(255,255,255,0.1)',
+                      color: ativo ? '#fff' : 'rgba(255,255,255,0.45)',
+                    }}>
+                    {f.label}
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>
