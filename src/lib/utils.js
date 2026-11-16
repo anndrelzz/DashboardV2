@@ -104,3 +104,25 @@ export const pctMeta = (total, meta) => {
   const pct = Math.round((total / meta) * 100)
   return { pct, pctBarra: Math.min(100, pct) }
 }
+
+const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+
+// 'YYYY-MM' -> 'Novembro/2026'
+export const fmtMesLabel = (mes) => {
+  const [a, m] = String(mes).split('-').map(Number)
+  return `${MESES_NOME[m - 1] || '?'}/${a}`
+}
+
+// Soma (ou subtrai) meses de um 'YYYY-MM', virando o ano quando precisa
+export const somarMes = (mes, delta) => {
+  const [a, m] = mes.split('-').map(Number)
+  const d = new Date(a, m - 1 + delta, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+// 'YYYY-MM-DD' -> 'DD/MM/YYYY'
+export const fmtDataBR = (iso) => {
+  if (!iso) return '—'
+  const s = String(iso).slice(0, 10)
+  return `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}`
+}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { sb } from '../lib/supabase'
 import useStore from '../store/useStore'
+import useVendasConsulta from '../lib/useVendasConsulta'
 import Sidebar from '../components/admin/Sidebar'
 import SecResumo from '../components/admin/SecResumo'
 import SecPerformance from '../components/admin/SecPerformance'
@@ -19,7 +20,11 @@ export default function Admin() {
   const [checking, setChecking] = useState(true)
   const [section, setSection]   = useState('resumo')
 
-  const { meta, metaFechamento, semanaFechamento, vendedores, equipes, vendas, carregarDados } = useStore()
+  const { meta, metaFechamento, semanaFechamento, vendedores, equipes, vendas, mes, carregarDados } = useStore()
+
+  // Mês escolhido no seletor de Vendedores / Lançar Venda (padrão: mês atual).
+  // Fica aqui pra valer igual nas duas abas.
+  const consulta = useVendasConsulta(mes, vendas, carregarDados)
 
   useEffect(() => {
     ;(async () => {
@@ -56,8 +61,8 @@ export default function Admin() {
         {section === 'resumo'      && <SecResumo {...secProps} />}
         {section === 'performance' && <SecPerformance {...secProps} />}
         {section === 'meta'        && <SecMeta metaFechamento={metaFechamento} onRefresh={refresh} />}
-        {section === 'vendas'      && <SecVendas {...secProps} />}
-        {section === 'vendedores'  && <SecVendedores {...secProps} />}
+        {section === 'vendas'      && <SecVendas {...secProps} mesAtual={mes} consulta={consulta} />}
+        {section === 'vendedores'  && <SecVendedores {...secProps} mesAtual={mes} consulta={consulta} />}
         {section === 'equipes'     && <SecEquipes {...secProps} />}
         {section === 'conferencia' && <SecConferencia {...secProps} />}
         {section === 'semana'      && <SecRankingSemana {...secProps} semanaFechamento={semanaFechamento} />}

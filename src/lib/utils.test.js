@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { toISODateLocal, getDiaFechamento, getMes, normalizarBusca, compararConferencia, fmt, diasEntre, fmtDiaMes, filtrarVendasSemana, filtrarVendasDoDia, pctMeta } from './utils'
+import { toISODateLocal, getDiaFechamento, getMes, normalizarBusca, compararConferencia, fmt, diasEntre, fmtDiaMes, filtrarVendasSemana, filtrarVendasDoDia, pctMeta, fmtMesLabel, somarMes, fmtDataBR } from './utils'
 
 describe('toISODateLocal', () => {
   it('formata com zero à esquerda', () => {
@@ -188,5 +188,22 @@ describe('filtrarVendasDoDia', () => {
   it('dia sem venda devolve vazio, sem quebrar com lista indefinida', () => {
     expect(filtrarVendasDoDia(vendas, '2026-09-28')).toEqual([])
     expect(filtrarVendasDoDia(undefined, '2026-09-30')).toEqual([])
+  })
+})
+
+describe('meses', () => {
+  it('fmtMesLabel', () => {
+    expect(fmtMesLabel('2026-11')).toBe('Novembro/2026')
+    expect(fmtMesLabel('2027-01')).toBe('Janeiro/2027')
+  })
+  it('somarMes vira o ano', () => {
+    expect(somarMes('2026-01', -1)).toBe('2025-12')
+    expect(somarMes('2026-12', 1)).toBe('2027-01')
+    expect(somarMes('2026-11', -3)).toBe('2026-08')
+  })
+  it('fmtDataBR', () => {
+    expect(fmtDataBR('2026-11-16')).toBe('16/11/2026')
+    expect(fmtDataBR('2026-11-16T10:00:00')).toBe('16/11/2026')
+    expect(fmtDataBR(null)).toBe('—')
   })
 })

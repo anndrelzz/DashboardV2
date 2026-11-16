@@ -1,21 +1,19 @@
 import { useState } from 'react'
 import { sb } from '../../lib/supabase'
-import useStore from '../../store/useStore'
-import { fmt, getDiaFechamento } from '../../lib/utils'
+import { fmt, getDiaFechamento, normalizarBusca, fmtDataBR, fmtMesLabel } from '../../lib/utils'
+import { TIPOS, tipoInfo } from '../../lib/tiposVenda'
+import { excluirVenda } from '../../lib/excluirVenda'
 import { toast } from '../../lib/toast'
-import Modal from '../ui/Modal'
 import SectionHeader from './SectionHeader'
-import { IconVendas, IconHome, IconCar, IconWrench, IconTrash, IconEdit } from './icons'
+import MesSelector from './MesSelector'
+import EditarVendaModal from './EditarVendaModal'
+import ResumoVendedorModal from './ResumoVendedorModal'
+import { IconVendas, IconTrash, IconEdit, IconSearch } from './icons'
 
-const TIPOS = [
-  { value:'Imovel',  label:'Imóvel',  Icon:IconHome,   color:'#E8000D' },
-  { value:'Veiculo', label:'Veículo', Icon:IconCar,    color:'#60A5FA' },
-  { value:'Serviço', label:'Serviço', Icon:IconWrench, color:'#FFD60A' },
-]
-const tipoInfo = (t) => TIPOS.find(x => x.value === t || (x.value === 'Serviço' && t === 'Servico')) || null
+export default function SecVendas({ vendedores, equipes, vendas: vendasMesAtual, mesAtual, consulta }) {
+  // Vendas do mês escolhido no seletor (padrão: mês atual)
+  const { vendas, mes, trocarMes, loading: loadingMes, recarregar } = consulta
 
-export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
-  const mesExibido = useStore(s => s.mes)
   const [vendId, setVendId]   = useState('')
   const [valor, setValor]     = useState('')
   const [data, setData]       = useState(getDiaFechamento())
@@ -23,16 +21,35 @@ export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
   const [desc, setDesc]       = useState('')
   const [saving, setSaving]   = useState(false)
 
-  const [editando, setEditando]     = useState(null) // venda sendo editada
-  const [eVendId, setEVendId]       = useState('')
-  const [eValor, setEValor]         = useState('')
-  const [eData, setEData]           = useState('')
-  const [eTipo, setETipo]           = useState('')
-  const [eDesc, setEDesc]           = useState('')
-  const [savingEdit, setSavingEdit] = useState(false)
+  const [editando, setEditando] = useState(null) // venda sendo editada
+  const [resumoVendId, setResumoVendId] = useState(null) // popup do vendedor
+  const vendResumo = resumoVendId ? vendedores.find(v => v.id === resumoVendId) : null
+
+  // Filtros do histórico
+  const [busca, setBusca]       = useState('')
+  const [fVend, setFVend]       = useState('')
+  const [fEquipe, setFEquipe]   = useState('')
+  const [fTipo, setFTipo]       = useState('')
 
   const getVend = id => vendedores.find(x => x.id === id)
   const getEq   = id => equipes.find(x => x.id === id)
+
+  const buscaNorm = normalizarBusca(busca)
+  const filtradas = vendas.filter(v => {
+    const vend = getVend(v.vendedor_id)
+    if (fVend && v.vendedor_id !== fVend) return false
+    if (fEquipe && vend?.equipe_id !== fEquipe) return false
+    if (fTipo && tipoInfo(v.tipo)?.value !== fTipo) return false
+    if (buscaNorm) {
+      const eq = vend ? getEq(vend.equipe_id) : null
+      const alvo = normalizarBusca(`${vend?.nome || ''} ${v.descricao || ''} ${eq?.nome || ''}`)
+      if (!alvo.includes(buscaNorm)) return false
+    }
+    return true
+  })
+  const temFiltro = !!(buscaNorm || fVend || fEquipe || fTipo)
+  const totalFiltrado = filtradas.reduce((a, b) => a + Number(b.valor), 0)
+  const limparFiltros = () => { setBusca(''); setFVend(''); setFEquipe(''); setFTipo('') }
 
   const lancar = async () => {
     if (!vendId) { toast('Selecione um vendedor', false); return }
@@ -41,60 +58,29 @@ export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
     if (!tipo) { toast('Selecione o tipo', false); return }
     if (!data) { toast('Informe a data', false); return }
     setSaving(true)
-    const mes = data.substring(0, 7)
-    const { error } = await sb.from('vendas').insert({ vendedor_id:vendId, valor:val, data, descricao:desc.trim(), tipo, mes })
+    const mesVenda = data.substring(0, 7)
+    const { error } = await sb.from('vendas').insert({ vendedor_id:vendId, valor:val, data, descricao:desc.trim(), tipo, mes:mesVenda })
     setSaving(false)
     if (error) { toast('Erro ao lançar venda', false); return }
+    // Já deixa o histórico mostrando as vendas desse vendedor, pra conferir na hora
+    setBusca(''); setFEquipe(''); setFTipo(''); setFVend(vendId)
     setValor(''); setDesc(''); setTipo('')
-    await onRefresh()
+    await recarregar()
+    if (mesVenda !== mes) trocarMes(mesVenda, true)
     toast('Venda lançada!')
   }
 
-  const abrirEdicao = (v) => {
-    setEditando(v)
-    setEVendId(v.vendedor_id)
-    setEValor(String(v.valor))
-    setEData(v.data || '')
-    setETipo(v.tipo === 'Servico' ? 'Serviço' : v.tipo)
-    setEDesc(v.descricao || '')
-  }
-
-  const salvarEdicao = async () => {
-    if (!eVendId) { toast('Selecione um vendedor', false); return }
-    const val = parseFloat(eValor)
-    if (!val || val <= 0) { toast('Informe um valor válido', false); return }
-    if (!eTipo) { toast('Selecione o tipo', false); return }
-    if (!eData) { toast('Informe a data', false); return }
-    setSavingEdit(true)
-    const mes = eData.substring(0, 7)
-    const { error } = await sb.from('vendas')
-      .update({ vendedor_id:eVendId, valor:val, data:eData, descricao:eDesc.trim(), tipo:eTipo, mes })
-      .eq('id', editando.id)
-    setSavingEdit(false)
-    if (error) { toast('Erro ao salvar edição', false); return }
-    setEditando(null)
-    await onRefresh()
-    toast('Venda atualizada!')
-  }
-
-  const remover = async (id) => {
-    if (!confirm('Remover esta venda?')) return
-    const { error } = await sb.from('vendas').delete().eq('id', id)
-    if (error) { toast('Erro ao remover venda', false); return }
-    await onRefresh()
-    toast('Venda removida')
-  }
-
   const limpar = async () => {
-    if (!confirm(`Limpar todas as vendas de ${mesExibido}?`)) return
-    const { error } = await sb.from('vendas').delete().eq('mes', mesExibido)
+    if (!confirm(`Limpar TODAS as vendas de ${fmtMesLabel(mes)}? Isso não pode ser desfeito.`)) return
+    const { error } = await sb.from('vendas').delete().eq('mes', mes)
     if (error) { toast('Erro ao limpar vendas do mês', false); return }
-    await onRefresh()
+    await recarregar()
     toast('Vendas do mês removidas')
   }
 
   const inputCls = "rounded-lg px-4 py-2.5 text-white text-sm outline-none border border-white/10 focus:border-red/40 transition-colors w-full"
   const inputBg  = { background:'#1F1F1F' }
+  const filtroCls = "rounded-lg px-3 py-2 text-white text-[13px] outline-none border border-white/10 focus:border-red/40 transition-colors"
 
   return (
     <div className="p-10 flex flex-col gap-8">
@@ -148,14 +134,50 @@ export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
 
       {/* Histórico */}
       <div className="rounded-2xl border overflow-hidden" style={{ background:'#161616', borderColor:'rgba(255,255,255,0.07)' }}>
-        <div className="px-6 py-4.5 border-b flex items-center justify-between" style={{ borderColor:'rgba(255,255,255,0.07)' }}>
+        <div className="px-6 py-4.5 border-b flex items-center justify-between gap-4" style={{ borderColor:'rgba(255,255,255,0.07)' }}>
           <span className="font-cond font-bold text-sm tracking-[2px] uppercase">Histórico de Vendas</span>
-          <button onClick={limpar}
-            className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold tracking-[1.5px] uppercase border transition-colors text-red border-red/20 hover:bg-red/10"
-            style={{ background:'rgba(239,68,68,0.06)' }}>
-            Limpar Mês
-          </button>
+          <div className="flex items-center gap-3">
+            <MesSelector mes={mes} mesAtual={mesAtual} onChange={trocarMes} loading={loadingMes} />
+            <button onClick={limpar}
+              className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold tracking-[1.5px] uppercase border transition-colors text-red border-red/20 hover:bg-red/10"
+              style={{ background:'rgba(239,68,68,0.06)' }}>
+              Limpar Mês
+            </button>
+          </div>
         </div>
+
+        {/* Filtros */}
+        <div className="px-6 py-3.5 border-b flex flex-wrap items-center gap-3" style={{ borderColor:'rgba(255,255,255,0.07)', background:'#191919' }}>
+          <div className="relative w-64">
+            <IconSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color:'rgba(255,255,255,0.3)' }} />
+            <input type="text" value={busca} onChange={e=>setBusca(e.target.value)}
+              placeholder="Buscar vendedor, equipe ou descrição..."
+              className={`${filtroCls} w-full pl-9`} style={inputBg} />
+          </div>
+          <select value={fVend} onChange={e=>setFVend(e.target.value)} className={filtroCls} style={inputBg}>
+            <option value="">Todos os vendedores</option>
+            {vendedores.map(v => <option key={v.id} value={v.id}>{v.nome}</option>)}
+          </select>
+          <select value={fEquipe} onChange={e=>setFEquipe(e.target.value)} className={filtroCls} style={inputBg}>
+            <option value="">Todas as equipes</option>
+            {equipes.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+          </select>
+          <select value={fTipo} onChange={e=>setFTipo(e.target.value)} className={filtroCls} style={inputBg}>
+            <option value="">Todos os tipos</option>
+            {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+          {temFiltro && (
+            <button onClick={limparFiltros}
+              className="px-3 py-2 rounded-lg text-[11px] font-bold tracking-wide uppercase border text-muted border-white/15 hover:text-white hover:border-white/30 transition-colors">
+              Limpar filtros
+            </button>
+          )}
+          <span className="ml-auto text-[12.5px] text-muted">
+            {filtradas.length} {filtradas.length === 1 ? 'venda' : 'vendas'}
+            {temFiltro && <> de {vendas.length}</>} · <strong className="text-white">{fmt(totalFiltrado)}</strong>
+          </span>
+        </div>
+
         <table className="w-full">
           <thead>
             <tr style={{ background:'#1c1c1c' }}>
@@ -167,15 +189,24 @@ export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
           </thead>
           <tbody>
             {vendas.length === 0 ? (
-              <tr><td colSpan={7} className="text-center py-14 text-muted text-[13px] tracking-wider uppercase">Nenhuma venda lançada no mês</td></tr>
-            ) : vendas.map(v => {
+              <tr><td colSpan={7} className="text-center py-14 text-muted text-[13px] tracking-wider uppercase">
+                {loadingMes ? 'Carregando...' : `Nenhuma venda lançada em ${fmtMesLabel(mes)}`}
+              </td></tr>
+            ) : filtradas.length === 0 ? (
+              <tr><td colSpan={7} className="text-center py-14 text-muted text-[13px] tracking-wider uppercase">Nenhuma venda com esses filtros</td></tr>
+            ) : filtradas.map(v => {
               const vend = getVend(v.vendedor_id)
               const eq   = vend ? getEq(vend.equipe_id) : null
               const info = tipoInfo(v.tipo)
               return (
                 <tr key={v.id} className="border-b last:border-0 hover:bg-white/[0.02] transition-colors"
                   style={{ borderColor:'rgba(255,255,255,0.05)' }}>
-                  <td className="px-5 py-3.5 text-[13.5px] font-semibold">{vend?.nome || 'Removido'}</td>
+                  <td className="px-5 py-3.5 text-[13.5px] font-semibold">
+                    {vend
+                      ? <button onClick={() => setResumoVendId(vend.id)} title="Ver resumo das vendas do vendedor"
+                          className="text-left hover:text-red hover:underline underline-offset-2 transition-colors">{vend.nome}</button>
+                      : 'Removido'}
+                  </td>
                   <td className="px-5 py-3.5 text-[13px]">
                     {info
                       ? <span className="inline-flex items-center gap-1.5 font-bold" style={{ color: info.color }}>
@@ -188,14 +219,14 @@ export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
                   </td>
                   <td className="px-5 py-3.5 font-bebas text-[16px] text-red">{fmt(v.valor)}</td>
                   <td className="px-5 py-3.5 text-[13px] text-muted">{v.descricao || '—'}</td>
-                  <td className="px-5 py-3.5 text-[13px] text-muted">{v.data || '—'}</td>
+                  <td className="px-5 py-3.5 text-[13px] text-muted">{fmtDataBR(v.data)}</td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
-                      <button onClick={() => abrirEdicao(v)}
+                      <button onClick={() => setEditando(v)}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11px] font-bold tracking-wide border text-muted border-white/15 hover:text-white hover:border-white/30 transition-colors">
                         <IconEdit size={12} />Editar
                       </button>
-                      <button onClick={() => remover(v.id)}
+                      <button onClick={() => excluirVenda(v.id, recarregar)}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11px] font-bold tracking-wide border text-red border-red/20 hover:bg-red/10 transition-colors"
                         style={{background:'rgba(239,68,68,0.06)'}}>
                         <IconTrash size={12} />Excluir
@@ -209,53 +240,19 @@ export default function SecVendas({ vendedores, equipes, vendas, onRefresh }) {
         </table>
       </div>
 
-      {/* Editar venda */}
-      <Modal open={!!editando} onClose={() => setEditando(null)} title="Editar Venda">
-        {editando && (
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Vendedor</label>
-                <select value={eVendId} onChange={e=>setEVendId(e.target.value)} className={inputCls} style={inputBg}>
-                  <option value="">Selecione...</option>
-                  {vendedores.map(v => <option key={v.id} value={v.id}>{v.nome}</option>)}
-                </select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Valor (R$)</label>
-                <input type="number" value={eValor} onChange={e=>setEValor(e.target.value)} min={0} step={0.01} className={inputCls} style={inputBg} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Data</label>
-                <input type="date" value={eData} onChange={e=>setEData(e.target.value)} className={inputCls} style={inputBg} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Tipo</label>
-                <select value={eTipo} onChange={e=>setETipo(e.target.value)} className={inputCls} style={inputBg}>
-                  <option value="">Selecione...</option>
-                  {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold tracking-[1px] uppercase text-muted">Descrição (opcional)</label>
-              <input type="text" value={eDesc} onChange={e=>setEDesc(e.target.value)} className={inputCls} style={inputBg} />
-            </div>
-            <div className="flex gap-3 pt-1">
-              <button onClick={salvarEdicao} disabled={savingEdit}
-                className="px-6 py-2.5 rounded-lg font-cond font-bold text-[13px] tracking-[2px] uppercase text-white disabled:opacity-60"
-                style={{ background:'#E8000D' }}>
-                {savingEdit ? 'Salvando...' : 'Salvar Alterações'}
-              </button>
-              <button onClick={() => setEditando(null)}
-                className="px-6 py-2.5 rounded-lg font-cond font-bold text-[13px] tracking-[2px] uppercase border text-muted hover:text-white hover:border-white/25 transition-colors"
-                style={{ background:'#1F1F1F', borderColor:'rgba(255,255,255,0.1)' }}>
-                Cancelar
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      <EditarVendaModal venda={editando} vendedores={vendedores}
+        onClose={() => setEditando(null)} onSaved={recarregar} />
+
+      <ResumoVendedorModal
+        vendedor={vendResumo}
+        equipe={vendResumo ? getEq(vendResumo.equipe_id) : null}
+        vendedores={vendedores}
+        mesAtual={mesAtual}
+        vendasMesAtual={vendasMesAtual}
+        mesInicial={mes}
+        vendasMesInicial={vendas}
+        recarregarPagina={recarregar}
+        onClose={() => setResumoVendId(null)} />
     </div>
   )
 }

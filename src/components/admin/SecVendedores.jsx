@@ -1,9 +1,13 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { sb } from '../../lib/supabase'
 import { fmt, NIVEIS, NIVEL_CORES, normalizarBusca } from '../../lib/utils'
+import { excluirVenda } from '../../lib/excluirVenda'
 import { toast } from '../../lib/toast'
 import Modal from '../ui/Modal'
 import SectionHeader from './SectionHeader'
+import MesSelector from './MesSelector'
+import EditarVendaModal from './EditarVendaModal'
+import VendasDoVendedor from './VendasDoVendedor'
 import { IconVendedores, IconUser, IconCamera, IconEdit, IconTrash, IconSearch } from './icons'
 
 const BUCKET = 'fotos-vendedores'
@@ -17,7 +21,10 @@ async function uploadFoto(file, vendedorId) {
   return data.publicUrl + '?t=' + Date.now()
 }
 
-export default function SecVendedores({ equipes, vendedores, vendas, onRefresh }) {
+export default function SecVendedores({ equipes, vendedores, mesAtual, consulta }) {
+  // Vendas do mês escolhido no seletor (padrão: mês atual). recarregar atualiza
+  // o mês atual e, se estiver vendo outro mês, ele também.
+  const { vendas, mes, trocarMes, loading: loadingMes, recarregar: onRefresh } = consulta
   const [nome, setNome]       = useState('')
   const [empresa, setEmpresa] = useState('')
   const [nivel, setNivel]     = useState('')
@@ -34,11 +41,28 @@ export default function SecVendedores({ equipes, vendedores, vendas, onRefresh }
   const [editSaving, setEditSaving] = useState(false)
 
   const [busca, setBusca] = useState('')
+  const [ordem, setOrdem] = useState('nome') // 'nome' | 'total'
+  const [abertos, setAbertos] = useState(() => new Set())
+  const [vendaEditando, setVendaEditando] = useState(null)
+
+  const alternar = (id) => setAbertos(prev => {
+    const n = new Set(prev)
+    if (n.has(id)) n.delete(id); else n.add(id)
+    return n
+  })
+
+  // Vendas do mês agrupadas por vendedor (já vêm da mais recente pra mais antiga)
+  const vendasPorVend = {}
+  for (const x of vendas) (vendasPorVend[x.vendedor_id] ||= []).push(x)
+  const totalDe = (id) => (vendasPorVend[id] || []).reduce((a, b) => a + Number(b.valor), 0)
 
   const buscaNorm = normalizarBusca(busca)
   const vendedoresFiltrados = buscaNorm
     ? vendedores.filter(v => normalizarBusca(v.nome).includes(buscaNorm) || normalizarBusca(v.empresa).includes(buscaNorm))
     : vendedores
+  const vendedoresOrdenados = ordem === 'total'
+    ? [...vendedoresFiltrados].sort((a, b) => totalDe(b.id) - totalDe(a.id) || a.nome.localeCompare(b.nome))
+    : vendedoresFiltrados
 
   const cadastrar = async () => {
     if (!nome.trim()) { toast('Informe o nome', false); return }
@@ -168,35 +192,51 @@ export default function SecVendedores({ equipes, vendedores, vendas, onRefresh }
           <span className="font-cond font-bold text-sm tracking-[2px] uppercase flex-shrink-0">
             Lista de Vendedores {buscaNorm && <span className="text-muted normal-case tracking-normal font-normal">({vendedoresFiltrados.length} de {vendedores.length})</span>}
           </span>
-          <div className="relative w-72">
-            <IconSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color:'rgba(255,255,255,0.3)' }} />
-            <input type="text" value={busca} onChange={e=>setBusca(e.target.value)}
-              placeholder="Buscar por nome ou empresa..."
-              className="w-full rounded-lg pl-9 pr-3 py-2 text-white text-[13px] outline-none border border-white/10 focus:border-red/40 transition-colors"
-              style={{ background:'#1F1F1F' }} />
+          <div className="flex items-center gap-3">
+            <MesSelector mes={mes} mesAtual={mesAtual} onChange={trocarMes} loading={loadingMes} />
+            <select value={ordem} onChange={e=>setOrdem(e.target.value)} title="Ordenar"
+              className="rounded-lg px-3 py-2 text-white text-[13px] outline-none border border-white/10 focus:border-red/40"
+              style={{ background:'#1F1F1F' }}>
+              <option value="nome">Ordem: nome</option>
+              <option value="total">Ordem: maior total</option>
+            </select>
+            <div className="relative w-64">
+              <IconSearch size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color:'rgba(255,255,255,0.3)' }} />
+              <input type="text" value={busca} onChange={e=>setBusca(e.target.value)}
+                placeholder="Buscar por nome ou empresa..."
+                className="w-full rounded-lg pl-9 pr-3 py-2 text-white text-[13px] outline-none border border-white/10 focus:border-red/40 transition-colors"
+                style={{ background:'#1F1F1F' }} />
+            </div>
           </div>
         </div>
         <table className="w-full">
           <thead>
             <tr style={{ background:'#1c1c1c' }}>
-              {['Foto','Nome','Empresa','Nível','Equipe','Vendas','Total',  ''].map(h => (
-                <th key={h} className="text-left px-5 py-3.5 text-[10.5px] font-bold tracking-[2px] uppercase text-muted border-b"
+              {['','Foto','Nome','Empresa','Nível','Equipe','Vendas','Total',''].map((h, i) => (
+                <th key={i} className="text-left px-5 py-3.5 text-[10.5px] font-bold tracking-[2px] uppercase text-muted border-b"
                   style={{ borderColor:'rgba(255,255,255,0.07)' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {vendedores.length === 0 ? (
-              <tr><td colSpan={8} className="text-center py-14 text-muted text-[13px] tracking-wider uppercase">Nenhum vendedor cadastrado</td></tr>
+              <tr><td colSpan={9} className="text-center py-14 text-muted text-[13px] tracking-wider uppercase">Nenhum vendedor cadastrado</td></tr>
             ) : vendedoresFiltrados.length === 0 ? (
-              <tr><td colSpan={8} className="text-center py-14 text-muted text-[13px] tracking-wider uppercase">Nenhum vendedor encontrado para "{busca}"</td></tr>
-            ) : vendedoresFiltrados.map(v => {
+              <tr><td colSpan={9} className="text-center py-14 text-muted text-[13px] tracking-wider uppercase">Nenhum vendedor encontrado para "{busca}"</td></tr>
+            ) : vendedoresOrdenados.map(v => {
               const eq = equipes.find(e => e.id === v.equipe_id)
-              const minhas = vendas.filter(x => x.vendedor_id === v.id)
-              const total  = minhas.reduce((a, b) => a + Number(b.valor), 0)
+              const minhas = vendasPorVend[v.id] || []
+              const total  = totalDe(v.id)
+              const aberto = abertos.has(v.id)
               return (
-                <tr key={v.id} className="border-b last:border-0 hover:bg-white/[0.02] transition-colors"
+                <Fragment key={v.id}>
+                <tr onClick={() => alternar(v.id)} title={aberto ? 'Fechar vendas' : 'Ver vendas do mês'}
+                  className={`border-b cursor-pointer transition-colors ${aberto ? 'bg-white/[0.03]' : 'hover:bg-white/[0.02]'}`}
                   style={{ borderColor:'rgba(255,255,255,0.05)' }}>
+                  <td className="pl-5 pr-0 py-3.5 w-8">
+                    <span className="inline-block text-muted text-[11px] transition-transform duration-200"
+                      style={{ transform: aberto ? 'rotate(90deg)' : 'none' }}>▶</span>
+                  </td>
                   <td className="px-5 py-3.5">
                     {v.foto_url
                       ? <img src={v.foto_url} className="w-9 h-9 rounded-full object-cover border border-white/10" alt={v.nome} />
@@ -213,7 +253,7 @@ export default function SecVendedores({ equipes, vendedores, vendas, onRefresh }
                   </td>
                   <td className="px-5 py-3.5 text-[13px] text-muted">{minhas.length}</td>
                   <td className="px-5 py-3.5 font-bebas text-[15px] text-red">{fmt(total)}</td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-3.5" onClick={e => e.stopPropagation()}>
                     <div className="flex gap-2">
                       <button onClick={() => abrirEdicao(v)}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11px] font-bold tracking-wide border text-muted border-white/15 hover:text-white hover:border-white/30 transition-colors"
@@ -228,11 +268,24 @@ export default function SecVendedores({ equipes, vendedores, vendas, onRefresh }
                     </div>
                   </td>
                 </tr>
+                {aberto && (
+                  <tr className="border-b" style={{ borderColor:'rgba(255,255,255,0.05)' }}>
+                    <td colSpan={9} className="px-5 pb-5 pt-1" style={{ background:'rgba(255,255,255,0.03)' }}>
+                      <VendasDoVendedor vendas={minhas} mes={mes}
+                        onEditar={setVendaEditando}
+                        onExcluir={id => excluirVenda(id, onRefresh)} />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               )
             })}
           </tbody>
         </table>
       </div>
+
+      <EditarVendaModal venda={vendaEditando} vendedores={vendedores}
+        onClose={() => setVendaEditando(null)} onSaved={onRefresh} />
 
       {/* Modal edição */}
       <Modal open={!!editando} onClose={() => setEditando(null)} title="Editar Vendedor">
